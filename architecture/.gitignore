@@ -1,0 +1,8 @@
+# Ignore sensitive variable files
+*.tfvars
+*.tfvars.json
+
+# Ignore local terraform state (which might also contain secrets)
+.terraform/
+terraform.tfstate
+terraform.tfstate.backup
