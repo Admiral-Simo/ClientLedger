@@ -4,7 +4,7 @@ import { fetchAuthSession } from "aws-amplify/auth";
 export const apiSlice = createApi({
   reducerPath: "api",
   baseQuery: fetchBaseQuery({
-    baseUrl: "http://localhost:8080/api", // Your Spring Boot URL
+    baseUrl: "http://localhost:8080/api",
     prepareHeaders: async (headers) => {
       try {
         const session = await fetchAuthSession();
