@@ -11,14 +11,20 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/public/**").permitAll()
+
+                        .requestMatchers("/api/contracts/**").hasAuthority("SCOPE_com.clientledger.backend/contracts.read")
+                        .requestMatchers("/api/contracts/create").hasAuthority("SCOPE_com.clientledger.backend/contracts.create")
+
                         .anyRequest().authenticated()
-                ).oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
+                )
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
 
         return http.build();
     }

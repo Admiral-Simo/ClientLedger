@@ -1,6 +1,7 @@
 package com.clientledger.backend.client;
 
 import com.clientledger.backend.contract.Contract;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -25,6 +26,7 @@ public class Client {
     private String defaultCurrency;
 
     // One client can have many contracts
+    @JsonIgnore
     @OneToMany(mappedBy = "client", cascade = CascadeType.ALL)
     private List<Contract> contracts;
 }

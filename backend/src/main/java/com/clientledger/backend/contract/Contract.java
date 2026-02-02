@@ -26,6 +26,9 @@ public class Contract {
     @Enumerated(EnumType.STRING) // Saves as "ACTIVE" instead of 1
     private ContractStatus status;
 
+    @Column(name = "owner_id")
+    private String ownerId; // Stores the Cognito 'sub' (Subject ID)
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "client_id", nullable = false)
     private Client client;
