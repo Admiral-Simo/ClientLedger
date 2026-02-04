@@ -19,7 +19,7 @@ export default function LoginForm() {
   };
 
   return (
-    <form onSubmit={handleLogin} className="flex flex-col gap-4">
+    <form onSubmit={handleLogin} className="flex flex-col gap-4 w-64 mx-auto">
       <input
         type="email"
         placeholder="Email"

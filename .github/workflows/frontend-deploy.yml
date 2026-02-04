@@ -39,7 +39,7 @@ jobs:
       - name: Build Next.js app
         env:
           # You should update this to your real Elastic Beanstalk URL
-          NEXT_PUBLIC_API_URL: "http://clientledger-prod.eba-tvjw8ihm.eu-west-3.elasticbeanstalk.com/api"
+          NEXT_PUBLIC_API_URL: "https://6ureeonb53.execute-api.eu-west-3.amazonaws.com/api"
         run: npm run build
 
       # 5. Configure AWS credentials
