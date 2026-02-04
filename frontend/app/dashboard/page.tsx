@@ -17,8 +17,9 @@ export default function Dashboard() {
       totalValue: 750,
       currency: "USD",
       status: "DRAFT",
-      client: { id: 1 }, // Ensure Client 1 exists in DB!
+      client: { id: 1 },
     });
+    console.log(process.env.NEXT_PUBLIC_API_URL);
   };
 
   return (
