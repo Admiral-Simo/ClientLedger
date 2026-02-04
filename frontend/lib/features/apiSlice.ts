@@ -4,7 +4,7 @@ import { fetchAuthSession } from "aws-amplify/auth";
 export const apiSlice = createApi({
   reducerPath: "api",
   baseQuery: fetchBaseQuery({
-    baseUrl: "http://localhost:8080/api",
+    baseUrl: process.env.REACT_APP_API_URL,
     prepareHeaders: async (headers) => {
       try {
         const session = await fetchAuthSession();
