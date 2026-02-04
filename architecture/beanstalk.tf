@@ -42,7 +42,7 @@ resource "aws_elastic_beanstalk_environment" "backend_env" {
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
     name      = "SERVER_PORT"
-    value     = "5000"
+    value     = "8080"
   }
 
   # 2. Database Connection
