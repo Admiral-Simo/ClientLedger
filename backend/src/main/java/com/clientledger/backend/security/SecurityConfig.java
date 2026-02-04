@@ -30,6 +30,10 @@ public class SecurityConfig {
 
                         .anyRequest().authenticated()
                 )
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/", "/health", "/api/public/**").permitAll() // <--- Allow root "/"
+                        .anyRequest().authenticated()
+                )
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
 
         return http.build();
@@ -39,11 +43,7 @@ public class SecurityConfig {
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOrigins(List.of(
-                "http://localhost:3000",
-                "https://clientledger.s3.eu-west-3.amazonaws.com",
-                "http://clientledger.s3-website.eu-west-3.amazonaws.com"
-        ));
+        configuration.setAllowedOriginPatterns(List.of("*"));
 
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
