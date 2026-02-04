@@ -1,0 +1,42 @@
+name: Deploy Backend to AWS
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Get the code
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      # 2. Setup Java 21 (AWS Corretto matches Elastic Beanstalk)
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'corretto'
+          cache: 'maven'
+
+      # 3. Compile the JAR (Skip tests to speed up deployment)
+      - name: Build with Maven
+        run: |
+          cd backend
+          mvn clean package -DskipTests
+
+      - name: Deploy to EB
+        uses: einaregilsson/beanstalk-deploy@v21
+        with:
+          aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          application_name: clientledger-backend
+          environment_name: clientledger-prod
+          version_label: "ver-${{ github.sha }}"
+          region: eu-west-3
+          deployment_package: backend/target/backend-0.0.1-SNAPSHOT.jar
