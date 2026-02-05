@@ -6,7 +6,7 @@ variable "db_username" {
 variable "db_password" {
   description = "The password for the RDS instance"
   type        = string
-  sensitive   = true  # This hides the value from console logs
+  sensitive   = true
 }
 
 variable "security_group_id" {
