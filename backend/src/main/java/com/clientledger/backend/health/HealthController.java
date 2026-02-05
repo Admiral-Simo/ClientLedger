@@ -6,12 +6,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class HealthController {
     @GetMapping
-    public String name() {
-        return "Client Backend is Running!";
+    public String healthcheck1() {
+        return "OK";
     }
 
-    @GetMapping("/")
-    public String health() {
+    @GetMapping("/health")
+    public String healthcheck2() {
         return "OK";
     }
 }
