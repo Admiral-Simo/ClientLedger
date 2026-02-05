@@ -9,41 +9,23 @@ data "aws_subnets" "default" {
   }
 }
 
-data "aws_security_group" "default" {
-  vpc_id = data.aws_vpc.default.id
-  name   = "default"
-}
-
 resource "aws_db_subnet_group" "default" {
-  name       = "main"
+  name       = "clientledger-db-subnets"
   subnet_ids = data.aws_subnets.default.ids
-
-  tags = {
-    Name = "My DB subnet group"
-  }
 }
 
 resource "aws_db_instance" "default" {
   allocated_storage      = 20
   engine                 = "mysql"
-  engine_version         = "9.0"
+  engine_version         = "8.0" # you can change to 9.0 later when it will be no longer supported
   instance_class         = "db.t3.micro"
-  identifier             = "my-terraform-rds-instance"
-  db_name                = "mydatabase"
-
-  # These pull from your secrets (tfvars or env vars)
+  identifier             = "clientledger-db"
+  db_name                = "clientledger_db"
   username               = var.db_username
   password               = var.db_password
-
   skip_final_snapshot    = true
   publicly_accessible    = true
 
-  # REFERENCES TO THE DATA ABOVE:
-  vpc_security_group_ids = [data.aws_security_group.default.id]
+  vpc_security_group_ids = [aws_security_group.db_sg.id]
   db_subnet_group_name   = aws_db_subnet_group.default.name
-}
-
-output "rds_endpoint" {
-  description = "The connection endpoint for the RDS instance"
-  value       = aws_db_instance.default.endpoint
 }

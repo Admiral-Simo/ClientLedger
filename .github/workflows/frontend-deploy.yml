@@ -5,8 +5,8 @@ on:
     branches:
       - main
     paths:
-      - 'frontend/**' # <--- OPTIMIZATION: Only run if frontend files change
-  workflow_dispatch:    # <--- FEATURE: Adds a "Run" button in GitHub Actions
+      - 'frontend/**'
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -34,12 +34,13 @@ jobs:
       - name: Install dependencies
         run: npm ci # 'ci' is faster and safer than 'install' for CI environments
 
+      - name: Create .env file
+        run: |
+          echo "${{ secrets.PROD_ENV_FILE }}" > .env
+          echo "Created .env file successfully"
+
       # 4. Build project
-      # CRITICAL NOTE: In production, this cannot be localhost!
       - name: Build Next.js app
-        env:
-          # You should update this to your real Elastic Beanstalk URL
-          NEXT_PUBLIC_API_URL: "https://6ureeonb53.execute-api.eu-west-3.amazonaws.com/api"
         run: npm run build
 
       # 5. Configure AWS credentials
@@ -50,7 +51,5 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-west-3
 
-      # 6. Deploy to S3
       - name: Deploy to S3 bucket
-        # Added --delete to remove old files that no longer exist
         run: aws s3 sync out/ s3://clientledger --delete

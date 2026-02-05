@@ -7,6 +7,11 @@ terraform {
   }
 }
 
+variable "aws_region" {
+  description = " The AWS region to deploy to"
+  default = "eu-west-3"
+}
+
 provider "aws" {
-  region = "eu-west-3"
+    region = var.aws_region
 }
