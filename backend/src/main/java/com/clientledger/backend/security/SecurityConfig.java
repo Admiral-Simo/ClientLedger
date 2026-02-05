@@ -21,20 +21,24 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(AbstractHttpConfigurer::disable)
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/public/**").permitAll()
+            .csrf(AbstractHttpConfigurer::disable)
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
-                        .requestMatchers("/api/contracts/**").authenticated()
+            // --- FIX STARTS HERE ---
+            // MERGE EVERYTHING INTO ONE BLOCK
+            .authorizeHttpRequests(auth -> auth
+                    // 1. Allow the Health Checks & Public API
+                    .requestMatchers("/", "/health", "/api/public/**").permitAll()
 
-                        .anyRequest().authenticated()
-                )
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/health", "/api/public/**").permitAll() // <--- Allow root "/"
-                        .anyRequest().authenticated()
-                )
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
+                    // 2. Protect your Business Logic
+                    .requestMatchers("/api/contracts/**").authenticated()
+
+                    // 3. Lock down everything else
+                    .anyRequest().authenticated()
+                    )
+            // --- FIX ENDS HERE ---
+
+            .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
 
         return http.build();
     }
