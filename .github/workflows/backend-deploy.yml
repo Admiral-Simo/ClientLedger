@@ -43,3 +43,6 @@ jobs:
           deployment_package: backend/target/backend-0.0.1-SNAPSHOT.jar
           wait_for_deployment: true
           wait_for_environment_recovery: 180
+
+          existing_bucket_name: ""
+          use_existing_version_if_available: true
