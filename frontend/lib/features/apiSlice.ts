@@ -18,7 +18,7 @@ export const apiSlice = createApi({
       return headers;
     },
   }),
-  tagTypes: ["Contracts"],
+  tagTypes: ["Contracts", "Clients"],
   endpoints: (builder) => ({
     getContracts: builder.query<any, void>({
       query: () => "/contracts",
@@ -32,7 +32,24 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ["Contracts"],
     }),
+    getClients: builder.query({
+      query: () => "/clients",
+      providesTags: ["Clients"],
+    }),
+    createClient: builder.mutation({
+      query: (newClient) => ({
+        url: "/clients",
+        method: "POST",
+        body: newClient,
+      }),
+      invalidatesTags: ["Clients"],
+    }),
   }),
 });
 
-export const { useGetContractsQuery, useCreateContractMutation } = apiSlice;
+export const {
+  useGetContractsQuery,
+  useCreateContractMutation,
+  useCreateClientMutation,
+  useGetClientsQuery,
+} = apiSlice;

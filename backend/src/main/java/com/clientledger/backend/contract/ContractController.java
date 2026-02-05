@@ -1,8 +1,14 @@
 package com.clientledger.backend.contract;
 
+import com.clientledger.backend.client.Client;
+import com.clientledger.backend.client.ClientRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -10,21 +16,42 @@ import java.util.List;
 public class ContractController {
 
     private final ContractRepository contractRepository;
+    private final ClientRepository clientRepository;
 
-    public ContractController(ContractRepository contractRepository) {
+    public ContractController(ContractRepository contractRepository, ClientRepository clientRepository) {
         this.contractRepository = contractRepository;
+        this.clientRepository = clientRepository;
     }
 
-    // CREATE: We extract the 'sub' (User ID) from the JWT
+    // 1. The DTO (Data Transfer Object)
+    // This tells Spring: "Expect JSON with title, value, and clientId"
+    public record ContractRequest(String title, BigDecimal totalValue, Long clientId) {}
+
     @PostMapping
-    public Contract createContract(@RequestBody Contract contract, @AuthenticationPrincipal Jwt jwt) {
-        String userId = jwt.getClaimAsString("sub"); // The unique Cognito User ID
-        contract.setOwnerId(userId);
+    public Contract createContract(@RequestBody ContractRequest request, @AuthenticationPrincipal Jwt jwt) {
+        String userId = jwt.getClaimAsString("sub");
+
+        // 2. Find the Client
+        Client client = clientRepository.findById(request.clientId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Client not found"));
+
+        // 3. SECURITY CHECK: Does this client belong to the logged-in user?
+        // If we skip this, User A could add a contract to User B's client!
+        if (!client.getOwnerId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access Denied");
+        }
+
+        // 4. Create and Save
+        Contract contract = new Contract();
+        contract.setTitle(request.title());
+        contract.setTotalValue(request.totalValue());
         contract.setStatus(ContractStatus.DRAFT);
+        contract.setOwnerId(userId);
+        contract.setClient(client); // <--- This fixes the "Column 'client_id' cannot be null" error
+
         return contractRepository.save(contract);
     }
 
-    // READ: We only return contracts where ownerId matches the logged-in user
     @GetMapping
     public List<Contract> getMyContracts(@AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getClaimAsString("sub");

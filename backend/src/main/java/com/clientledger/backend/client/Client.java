@@ -22,6 +22,11 @@ public class Client {
     @Column(name = "default_currency")
     private String defaultCurrency;
 
+    // 👇 ADD THIS FIELD
+    // This links the Client to the logged-in Freelancer (Cognito Sub)
+    @Column(name = "owner_id", nullable = false)
+    private String ownerId;
+
     @OneToMany(mappedBy = "client")
     @JsonIgnore
     private List<Contract> contracts;
