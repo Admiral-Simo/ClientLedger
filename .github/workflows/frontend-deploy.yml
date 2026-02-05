@@ -12,17 +12,14 @@ jobs:
   deploy:
     name: Build and Deploy Frontend
     runs-on: ubuntu-latest
-
     defaults:
       run:
         working-directory: frontend
 
     steps:
-      # 1. Checkout repo
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -30,20 +27,18 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      # 3. Install dependencies
       - name: Install dependencies
-        run: npm ci # 'ci' is faster and safer than 'install' for CI environments
+        run: npm ci
 
+      # Create the .env file from your GitHub Secret
       - name: Create .env file
         run: |
           echo "${{ secrets.PROD_ENV_FILE }}" > .env
           echo "Created .env file successfully"
 
-      # 4. Build project
       - name: Build Next.js app
         run: npm run build
 
-      # 5. Configure AWS credentials
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -51,5 +46,12 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-west-3
 
+      # DYNAMIC DEPLOY STEP
       - name: Deploy to S3 bucket
-        run: aws s3 sync out/ s3://clientledger --delete
+        run: |
+          # 1. Export variables from the .env file so the shell can see them
+          export $(grep -v '^#' .env | xargs)
+
+          # 2. Use the variable for the bucket name
+          echo "Deploying to bucket: $NEXT_PUBLIC_S3_BUCKET_NAME"
+          aws s3 sync out/ s3://$NEXT_PUBLIC_S3_BUCKET_NAME --delete
