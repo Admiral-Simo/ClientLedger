@@ -12,7 +12,7 @@ resource "aws_elastic_beanstalk_environment" "backend_env" {
   application         = aws_elastic_beanstalk_application.backend_app.name
   solution_stack_name = data.aws_elastic_beanstalk_solution_stack.java17.name
 
-  # --- HARDWARE ---
+  # --- 1. HARDWARE ---
   setting {
     namespace = "aws:elasticbeanstalk:environment"
     name      = "EnvironmentType"
@@ -23,32 +23,49 @@ resource "aws_elastic_beanstalk_environment" "backend_env" {
     name      = "InstanceType"
     value     = "t3.micro"
   }
+
+  # --- 2. ROLES (Using the ones we just created in iam.tf) ---
   setting {
     namespace = "aws:autoscaling:launchconfiguration"
     name      = "IamInstanceProfile"
-    value     = "aws-elasticbeanstalk-ec2-role"
+    value     = aws_iam_instance_profile.beanstalk_ec2_profile.name
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:environment"
+    name      = "ServiceRole"
+    value     = aws_iam_role.beanstalk_service.name
   }
 
-  # 1. Tell Beanstalk WHICH VPC to use
+  # --- 3. NETWORK ---
   setting {
     namespace = "aws:ec2:vpc"
     name      = "VPCId"
     value     = data.aws_vpc.default.id
   }
-  # 2. Tell Beanstalk WHICH Subnets to use (Convert list to string)
   setting {
     namespace = "aws:ec2:vpc"
     name      = "Subnets"
     value     = join(",", data.aws_subnets.default.ids)
   }
-  # 3. Attach the Security Group we created
   setting {
     namespace = "aws:autoscaling:launchconfiguration"
     name      = "SecurityGroups"
     value     = aws_security_group.app_sg.id
   }
 
-  # --- ENV VARS ---
+  # --- 4. HEALTH CHECKS (Critical for Green Status) ---
+  setting {
+    namespace = "aws:elasticbeanstalk:environment:process:default"
+    name      = "HealthCheckPath"
+    value     = "/health"
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:environment:process:default"
+    name      = "MatcherHTTPCode"
+    value     = "200"
+  }
+
+  # --- 5. ENVIRONMENT VARIABLES ---
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
     name      = "SERVER_PORT"
