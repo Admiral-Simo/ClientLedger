@@ -26,7 +26,7 @@ resource "aws_db_subnet_group" "default" {
 resource "aws_db_instance" "default" {
   allocated_storage      = 20
   engine                 = "mysql"
-  engine_version         = "8.0"
+  engine_version         = "9.0"
   instance_class         = "db.t3.micro"
   identifier             = "my-terraform-rds-instance"
   db_name                = "mydatabase"
