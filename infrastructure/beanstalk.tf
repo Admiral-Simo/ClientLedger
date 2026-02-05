@@ -12,6 +12,7 @@ resource "aws_elastic_beanstalk_environment" "backend_env" {
   application         = aws_elastic_beanstalk_application.backend_app.name
   solution_stack_name = data.aws_elastic_beanstalk_solution_stack.java17.name
 
+  # --- HARDWARE ---
   setting {
     namespace = "aws:elasticbeanstalk:environment"
     name      = "EnvironmentType"
@@ -28,12 +29,26 @@ resource "aws_elastic_beanstalk_environment" "backend_env" {
     value     = "aws-elasticbeanstalk-ec2-role"
   }
 
+  # 1. Tell Beanstalk WHICH VPC to use
+  setting {
+    namespace = "aws:ec2:vpc"
+    name      = "VPCId"
+    value     = data.aws_vpc.default.id
+  }
+  # 2. Tell Beanstalk WHICH Subnets to use (Convert list to string)
+  setting {
+    namespace = "aws:ec2:vpc"
+    name      = "Subnets"
+    value     = join(",", data.aws_subnets.default.ids)
+  }
+  # 3. Attach the Security Group we created
   setting {
     namespace = "aws:autoscaling:launchconfiguration"
     name      = "SecurityGroups"
     value     = aws_security_group.app_sg.id
   }
 
+  # --- ENV VARS ---
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
     name      = "SERVER_PORT"
