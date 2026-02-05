@@ -38,13 +38,12 @@ resource "aws_iam_role" "beanstalk_service" {
   })
 }
 
-# Attach "Enhanced Health" policy (Also helps with Green Health)
 resource "aws_iam_role_policy_attachment" "beanstalk_service_health" {
   role       = aws_iam_role.beanstalk_service.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSElasticBeanstalkEnhancedHealth"
 }
 
-resource "aws_iam_role_policy_attachment" "beanstalk_service_managed" {
+resource "aws_iam_role_policy_attachment" "beanstalk_service_main" {
   role       = aws_iam_role.beanstalk_service.name
-  policy_arn = "arn:aws:iam::aws:policy/AWSElasticBeanstalkManagedUpdates"
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSElasticBeanstalkService"
 }
