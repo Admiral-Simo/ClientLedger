@@ -44,6 +44,49 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ["Clients"],
     }),
+    deleteClient: builder.mutation({
+      query: (id) => ({
+        url: `/clients/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Clients", "Contracts"], // Deleting a client deletes their contracts (Cascade)
+    }),
+
+    updateClient: builder.mutation({
+      query: ({ id, ...patch }) => ({
+        url: `/clients/${id}`,
+        method: "PUT",
+        body: patch,
+      }),
+      invalidatesTags: ["Clients"],
+    }),
+
+    // --- CONTRACTS ---
+    deleteContract: builder.mutation({
+      query: (id) => ({
+        url: `/contracts/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Contracts"],
+    }),
+
+    updateContract: builder.mutation({
+      query: ({ id, ...patch }) => ({
+        url: `/contracts/${id}`,
+        method: "PUT",
+        body: patch,
+      }),
+      invalidatesTags: ["Contracts"],
+    }),
+
+    updateContractStatus: builder.mutation({
+      query: ({ id, status }) => ({
+        url: `/contracts/${id}/status`,
+        method: "PUT",
+        params: { status }, // Sends ?status=PAID
+      }),
+      invalidatesTags: ["Contracts"],
+    }),
   }),
 });
 
@@ -52,4 +95,9 @@ export const {
   useCreateContractMutation,
   useCreateClientMutation,
   useGetClientsQuery,
+  useDeleteClientMutation,
+  useDeleteContractMutation,
+  useUpdateClientMutation,
+  useUpdateContractMutation,
+  useUpdateContractStatusMutation,
 } = apiSlice;

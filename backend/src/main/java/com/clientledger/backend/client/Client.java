@@ -27,7 +27,11 @@ public class Client {
     @Column(name = "owner_id", nullable = false)
     private String ownerId;
 
-    @OneToMany(mappedBy = "client")
+    @OneToMany(
+            mappedBy = "client",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
     @JsonIgnore
     private List<Contract> contracts;
 }

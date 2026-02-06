@@ -54,7 +54,47 @@ public class ContractController {
 
     @GetMapping
     public List<Contract> getMyContracts(@AuthenticationPrincipal Jwt jwt) {
-        String userId = jwt.getClaimAsString("sub");
+        String userId = jwt.getSubject();
         return contractRepository.findByOwnerId(userId);
+    }
+
+    @DeleteMapping("/{id}")
+    public void deleteContract(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        String userId = jwt.getSubject();
+        Contract contract = contractRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Contract not found"));
+        if (!contract.getOwnerId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access Denied");
+        }
+        contractRepository.deleteById(contract.getId());
+    }
+
+    @PutMapping("/{id}/status")
+    public Contract updateContractStatus(@PathVariable Long id, @RequestParam ContractStatus status, @AuthenticationPrincipal Jwt jwt) {
+        String userId = jwt.getSubject();
+        Contract contract = contractRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Contract not found"));
+        if (!contract.getOwnerId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access Denied");
+        }
+        contract.setStatus(status);
+        return contractRepository.save(contract);
+    }
+
+    @PutMapping("/{id}")
+    public Contract updateContractDetails(@PathVariable Long id, @RequestBody ContractRequest request, @AuthenticationPrincipal Jwt jwt) {
+        String userId = jwt.getSubject();
+
+        Contract contract = contractRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Contract not found"));
+
+        if (!contract.getOwnerId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access Denied");
+        }
+
+        contract.setTitle(request.title());
+        contract.setTotalValue(request.totalValue());
+
+        return contractRepository.save(contract);
     }
 }
