@@ -3,6 +3,7 @@ package com.clientledger.backend.contract;
 import com.clientledger.backend.client.Client;
 import com.clientledger.backend.client.ClientRepository;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -100,5 +101,25 @@ public class ContractController {
         contract.setTotalValue(request.totalValue());
 
         return contractRepository.save(contract);
+    }
+
+    @GetMapping("{id}/pdf")
+    public ResponseEntity<byte[]> downloadInvoice(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        String userId = jwt.getSubject();
+        Contract contract = contractRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Contract not found"));
+        if (!contract.getOwnerId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access Denied");
+        }
+
+        PdfService pdfService = new PdfService();
+        byte[] pdfBytes = pdfService.generateInvoice(contract);
+
+        String safeTitle = contract.getTitle().toLowerCase().replaceAll("[^a-zA-Z0-9_-]", "_");
+
+
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=invoice_" + safeTitle + ".pdf")
+                .body(pdfBytes);
     }
 }

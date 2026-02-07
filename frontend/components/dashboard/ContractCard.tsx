@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { fetchAuthSession } from "aws-amplify/auth"; // ✅ Import Auth
 import {
   Card,
   CardContent,
@@ -22,7 +23,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Edit2, Trash2, CheckCircle2, Loader2 } from "lucide-react";
+import { Edit2, Trash2, CheckCircle2, Loader2, Download } from "lucide-react"; // ✅ Import Download Icon
 import ContractStatusSelector from "@/components/contract-status-selector";
 import { useDeleteContractMutation } from "@/lib/features/apiSlice";
 import ContractDialog from "./ContractDialog";
@@ -33,13 +34,67 @@ interface ContractProps {
 
 export default function ContractCard({ contract }: ContractProps) {
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false); // ✅ Download Loading State
 
-  // Get isLoading state for the delete action
   const [deleteContract, { isLoading: isDeleting }] =
     useDeleteContractMutation();
 
   const handleDelete = async () => {
     await deleteContract(contract.id);
+  };
+
+  // ✅ NEW: Secure Download Handler
+  const handleDownload = async () => {
+    try {
+      setIsDownloading(true);
+
+      // 1. Get the current JWT Token
+      const session = await fetchAuthSession();
+      const token = session.tokens?.accessToken?.toString();
+
+      if (!token) {
+        alert("You must be logged in to download.");
+        return;
+      }
+
+      // 2. Fetch the PDF with the Authorization Header
+      const apiUrl =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
+      const response = await fetch(`${apiUrl}/contracts/${contract.id}/pdf`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`, // 🔑 This unlocks the backend
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to download invoice");
+      }
+
+      // 3. Convert response to a Blob (File)
+      const blob = await response.blob();
+
+      // 4. Create a temporary download link and click it programmatically
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      // Generate a clean filename based on the title
+      const safeTitle = contract.title
+        .replace(/[^a-z0-9]/gi, "_")
+        .toLowerCase();
+      a.download = `invoice_${safeTitle}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+
+      // 5. Cleanup
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error("Download error:", error);
+      alert("Could not download the invoice. Please try again.");
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   return (
@@ -81,18 +136,35 @@ export default function ContractCard({ contract }: ContractProps) {
               variant="ghost"
               className="h-8 w-8"
               onClick={() => setIsEditOpen(true)}
+              disabled={isDownloading}
             >
               <Edit2 className="w-3.5 h-3.5 text-muted-foreground" />
             </Button>
 
-            {/* DELETE BUTTON (Wrapped in Alert Dialog) */}
+            {/* ✅ DOWNLOAD BUTTON */}
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8"
+              onClick={handleDownload}
+              disabled={isDownloading}
+              title="Download Invoice PDF"
+            >
+              {isDownloading ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
+              ) : (
+                <Download className="w-3.5 h-3.5 text-muted-foreground hover:text-primary" />
+              )}
+            </Button>
+
+            {/* DELETE BUTTON */}
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button
                   size="icon"
                   variant="ghost"
                   className="h-8 w-8"
-                  disabled={isDeleting}
+                  disabled={isDeleting || isDownloading}
                 >
                   {isDeleting ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin text-destructive" />
@@ -108,8 +180,7 @@ export default function ContractCard({ contract }: ContractProps) {
                     This action cannot be undone. This will permanently delete
                     the contract
                     <span className="font-semibold text-foreground">
-                      {" "}
-                      "{contract.title}"{" "}
+                      {contract.title}
                     </span>
                     and remove it from our servers.
                   </AlertDialogDescription>
