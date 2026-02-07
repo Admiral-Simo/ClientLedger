@@ -22,7 +22,7 @@ export default function AuthListener() {
         case "signedOut":
           console.log("User signed out, redirecting...");
           dispatch(apiSlice.util.resetApiState());
-          router.push("/");
+          router.push("/signin");
           router.refresh();
           break;
       }

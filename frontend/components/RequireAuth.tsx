@@ -22,12 +22,12 @@ export default function RequireAuth({
           setIsAuthenticated(true);
         } else {
           setIsAuthenticated(false);
-          router.replace("/");
+          router.replace("/signin");
         }
       } catch {
         // Unused 'err' variable removed here to fix lint warning
         setIsAuthenticated(false);
-        router.replace("/");
+        router.replace("/signin");
       }
     }
 

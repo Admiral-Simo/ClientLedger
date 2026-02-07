@@ -1,10 +1,18 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { fetchAuthSession } from "aws-amplify/auth";
 
+interface StatsSummary {
+  totalClients: number;
+  totalContracts: number;
+  totalPendingAmount: number;
+  totalPaidAmount: number;
+  totalOverdueAmount: number;
+}
+
 export const apiSlice = createApi({
   reducerPath: "api",
   baseQuery: fetchBaseQuery({
-    baseUrl: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api",
+    baseUrl: process.env.NEXT_PUBLIC_API_URL,
     prepareHeaders: async (headers) => {
       try {
         const session = await fetchAuthSession();
@@ -13,45 +21,14 @@ export const apiSlice = createApi({
           headers.set("Authorization", `Bearer ${token}`);
         }
       } catch {
-        // We ignore the error here. If the user isn't logged in,
-        // no token is attached, and the backend will return 401.
+        console.log("No active session");
       }
       return headers;
     },
   }),
-  tagTypes: ["Clients", "Contracts"],
+  tagTypes: ["Contracts", "Clients"],
   endpoints: (builder) => ({
-    // CLIENTS
-    getClients: builder.query({
-      query: () => "/clients",
-      providesTags: ["Clients"],
-    }),
-    createClient: builder.mutation({
-      query: (body) => ({
-        url: "/clients",
-        method: "POST",
-        body,
-      }),
-      invalidatesTags: ["Clients"],
-    }),
-    deleteClient: builder.mutation({
-      query: (id) => ({
-        url: `/clients/${id}`,
-        method: "DELETE",
-      }),
-      invalidatesTags: ["Clients", "Contracts"],
-    }),
-    updateClient: builder.mutation({
-      query: ({ id, ...patch }) => ({
-        url: `/clients/${id}`,
-        method: "PUT",
-        body: patch,
-      }),
-      invalidatesTags: ["Clients"],
-    }),
-
-    // CONTRACTS
-    getContracts: builder.query({
+    getContracts: builder.query<any, void>({
       query: () => "/contracts",
       providesTags: ["Contracts"],
     }),
@@ -63,6 +40,36 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ["Contracts"],
     }),
+    getClients: builder.query({
+      query: () => "/clients",
+      providesTags: ["Clients"],
+    }),
+    createClient: builder.mutation({
+      query: (newClient) => ({
+        url: "/clients",
+        method: "POST",
+        body: newClient,
+      }),
+      invalidatesTags: ["Clients"],
+    }),
+    deleteClient: builder.mutation({
+      query: (id) => ({
+        url: `/clients/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Clients", "Contracts"], // Deleting a client deletes their contracts (Cascade)
+    }),
+
+    updateClient: builder.mutation({
+      query: ({ id, ...patch }) => ({
+        url: `/clients/${id}`,
+        method: "PUT",
+        body: patch,
+      }),
+      invalidatesTags: ["Clients"],
+    }),
+
+    // --- CONTRACTS ---
     deleteContract: builder.mutation({
       query: (id) => ({
         url: `/contracts/${id}`,
@@ -70,6 +77,7 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ["Contracts"],
     }),
+
     updateContract: builder.mutation({
       query: ({ id, ...patch }) => ({
         url: `/contracts/${id}`,
@@ -78,25 +86,32 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ["Contracts"],
     }),
+
     updateContractStatus: builder.mutation({
       query: ({ id, status }) => ({
         url: `/contracts/${id}/status`,
         method: "PUT",
-        params: { status },
+        params: { status }, // Sends ?status=PAID
       }),
       invalidatesTags: ["Contracts"],
+    }),
+
+    getStatsSummary: builder.query<StatsSummary, void>({
+      query: () => "/stats/summary",
+      providesTags: ["Contracts", "Clients"],
     }),
   }),
 });
 
 export const {
-  useGetClientsQuery,
-  useCreateClientMutation,
-  useDeleteClientMutation,
-  useUpdateClientMutation,
   useGetContractsQuery,
   useCreateContractMutation,
+  useCreateClientMutation,
+  useGetClientsQuery,
+  useDeleteClientMutation,
   useDeleteContractMutation,
+  useUpdateClientMutation,
   useUpdateContractMutation,
   useUpdateContractStatusMutation,
+  useGetStatsSummaryQuery,
 } = apiSlice;

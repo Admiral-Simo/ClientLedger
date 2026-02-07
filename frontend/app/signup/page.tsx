@@ -6,51 +6,34 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Loader2,
   DollarSign,
   AlertCircle,
   CheckCircle2,
-  Mail,
+  ArrowLeft,
 } from "lucide-react";
+import { useRedirectIfAuthenticated } from "@/hooks/useRedirectIfAuthenticated";
 
 export default function SignupPage() {
   const [step, setStep] = useState<"SIGNUP" | "VERIFY" | "SUCCESS">("SIGNUP");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
-  const [form, setForm] = useState({
-    email: "",
-    password: "",
-  });
+  const [form, setForm] = useState({ email: "", password: "" });
   const [code, setCode] = useState("");
+  useRedirectIfAuthenticated();
 
-  // Step 1: Create Account
   const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError("");
-
     try {
       await signUp({
         username: form.email,
         password: form.password,
-        options: {
-          userAttributes: {
-            email: form.email,
-          },
-        },
+        options: { userAttributes: { email: form.email } },
       });
-      // On success, move to Verification Step
       setStep("VERIFY");
       setLoading(false);
     } catch (err: unknown) {
@@ -64,18 +47,12 @@ export default function SignupPage() {
     }
   };
 
-  // Step 2: Verify Email Code
   const handleVerification = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError("");
-
     try {
-      await confirmSignUp({
-        username: form.email,
-        confirmationCode: code,
-      });
-      // On success, show Success Card
+      await confirmSignUp({ username: form.email, confirmationCode: code });
       setStep("SUCCESS");
       setLoading(false);
     } catch (err: unknown) {
@@ -83,169 +60,149 @@ export default function SignupPage() {
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError("Invalid verification code");
+        setError("Invalid code");
       }
       setLoading(false);
     }
   };
 
-  // --- RENDER: SUCCESS STATE ---
-  if (step === "SUCCESS") {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <Card className="w-full max-w-md shadow-xl text-center p-6 border-slate-200">
-          <div className="flex justify-center mb-4">
-            <div className="h-12 w-12 bg-green-100 rounded-full flex items-center justify-center">
-              <CheckCircle2 className="h-6 w-6 text-green-600" />
-            </div>
+  return (
+    <div className="w-full lg:grid lg:grid-cols-2 min-h-screen">
+      {/* LEFT SIDE: BRANDING */}
+      <div className="hidden bg-zinc-900 text-white lg:flex flex-col justify-between p-10 relative overflow-hidden">
+        <div className="relative z-10 flex items-center gap-2 text-lg font-medium">
+          <div className="bg-white text-zinc-900 p-1 rounded">
+            <DollarSign className="w-4 h-4" />
           </div>
-          <CardTitle className="text-2xl mb-2">Account Verified!</CardTitle>
-          <CardDescription className="mb-6">
-            Your account is active. You can now log in to your dashboard.
-          </CardDescription>
-          <Button asChild className="w-full">
-            <Link href="/">Go to Login</Link>
-          </Button>
-        </Card>
+          ClientLedger
+        </div>
+        <div className="relative z-10 space-y-4">
+          <blockquote className="space-y-2">
+            <p className="text-lg">
+              &ldquo;Starting my agency was hard. Managing the finances was
+              harder. ClientLedger made it simple.&rdquo;
+            </p>
+            <footer className="text-sm opacity-80">Alex Chen</footer>
+          </blockquote>
+        </div>
       </div>
-    );
-  }
 
-  // --- RENDER: VERIFICATION STATE ---
-  if (step === "VERIFY") {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 relative">
-        <div className="absolute inset-0 bg-grid-slate-200/[0.04] bg-[bottom_1px_center]" />
-        <Card className="w-full max-w-md relative z-10 shadow-xl border-slate-200">
-          <CardHeader className="space-y-1">
-            <div className="flex justify-center mb-4">
-              <div className="bg-blue-100 p-3 rounded-full">
-                <Mail className="w-6 h-6 text-blue-600" />
-              </div>
+      {/* RIGHT SIDE: FORMS */}
+      <div className="flex items-center justify-center py-12 px-6 bg-background">
+        <div className="mx-auto grid w-full max-w-[350px] gap-6">
+          {/* HEADER (Only show if not success) */}
+          {step !== "SUCCESS" && (
+            <div className="flex flex-col space-y-2 text-center">
+              <Link href="/" className="absolute top-8 left-8 md:hidden">
+                <ArrowLeft className="w-6 h-6 text-muted-foreground" />
+              </Link>
+              <h1 className="text-3xl font-bold tracking-tight">
+                {step === "SIGNUP" ? "Create an account" : "Verify email"}
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                {step === "SIGNUP"
+                  ? "Enter your email below to create your account"
+                  : `We sent a code to ${form.email}`}
+              </p>
             </div>
-            <CardTitle className="text-2xl font-bold text-center">
-              Check your email
-            </CardTitle>
-            <CardDescription className="text-center">
-              We sent a verification code to <strong>{form.email}</strong>
-            </CardDescription>
-          </CardHeader>
+          )}
 
-          <form onSubmit={handleVerification}>
-            <CardContent className="space-y-4">
-              {error && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
+          {/* ERROR ALERT */}
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
-              <div className="space-y-2">
+          {/* STEP 1: SIGNUP FORM */}
+          {step === "SIGNUP" && (
+            <form onSubmit={handleSignup} className="grid gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="name@example.com"
+                  required
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  disabled={loading}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  required
+                  value={form.password}
+                  onChange={(e) =>
+                    setForm({ ...form, password: e.target.value })
+                  }
+                  disabled={loading}
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Create Account
+              </Button>
+              <div className="mt-4 text-center text-sm">
+                Already have an account?{" "}
+                <Link
+                  href="/signin"
+                  className="underline text-primary font-medium"
+                >
+                  Login
+                </Link>
+              </div>
+            </form>
+          )}
+
+          {/* STEP 2: VERIFY FORM */}
+          {step === "VERIFY" && (
+            <form onSubmit={handleVerification} className="grid gap-4">
+              <div className="grid gap-2">
                 <Label htmlFor="code">Verification Code</Label>
                 <Input
                   id="code"
-                  placeholder="123456"
                   className="text-center text-lg tracking-widest"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
+                  placeholder="123456"
                   maxLength={6}
                   required
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  disabled={loading}
                 />
               </div>
-            </CardContent>
-
-            <CardFooter>
-              <Button
-                className="w-full font-semibold"
-                type="submit"
-                disabled={loading}
-              >
+              <Button type="submit" className="w-full" disabled={loading}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Verify Account
               </Button>
-            </CardFooter>
-          </form>
-        </Card>
-      </div>
-    );
-  }
+            </form>
+          )}
 
-  // --- RENDER: SIGNUP STATE (Default) ---
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 relative">
-      <div className="absolute inset-0 bg-grid-slate-200/[0.04] bg-[bottom_1px_center]" />
-
-      <Card className="w-full max-w-md relative z-10 shadow-xl border-slate-200">
-        <CardHeader className="space-y-1">
-          <div className="flex justify-center mb-4">
-            <div className="bg-slate-900 text-white p-2 rounded-lg inline-flex items-center gap-2">
-              <DollarSign className="w-5 h-5" />
-              <span className="font-bold tracking-tight">ClientLedger</span>
-            </div>
-          </div>
-          <CardTitle className="text-2xl font-bold text-center tracking-tight">
-            Create an account
-          </CardTitle>
-          <CardDescription className="text-center">
-            Start managing your freelance business today
-          </CardDescription>
-        </CardHeader>
-
-        <form onSubmit={handleSignup}>
-          <CardContent className="space-y-4">
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="john@example.com"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-                required
-              />
-            </div>
-          </CardContent>
-
-          <CardFooter className="flex flex-col gap-4">
-            <Button
-              className="w-full font-semibold"
-              type="submit"
-              disabled={loading}
-            >
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Create Account
-            </Button>
-
-            <div className="text-center text-sm text-slate-500">
-              Already have an account?{" "}
-              <Link
-                href="/"
-                className="text-blue-600 font-semibold hover:underline"
-              >
-                Sign in
+          {/* STEP 3: SUCCESS STATE */}
+          {step === "SUCCESS" && (
+            <div className="text-center space-y-4">
+              <div className="flex justify-center mb-4">
+                <div className="h-16 w-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
+                  <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
+                </div>
+              </div>
+              <h1 className="text-3xl font-bold tracking-tight">
+                Account Created
+              </h1>
+              <p className="text-muted-foreground">
+                Your account has been verified. You can now log in.
+              </p>
+              <Link href="/signin">
+                <Button className="w-full mt-4">Go to Login</Button>
               </Link>
             </div>
-          </CardFooter>
-        </form>
-      </Card>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

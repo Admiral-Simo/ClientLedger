@@ -9,6 +9,7 @@ import {
   useDeleteContractMutation,
   useUpdateContractMutation,
   useUpdateContractStatusMutation,
+  useGetStatsSummaryQuery,
 } from "@/lib/features/apiSlice";
 import { signOut } from "aws-amplify/auth";
 import { useRouter } from "next/navigation";
@@ -37,7 +38,11 @@ import {
   DollarSign,
   Briefcase,
   CheckCircle2,
+  Moon,
+  Sun,
 } from "lucide-react";
+import PaidUnpaidPieChart from "@/components/PaidUnpaidPieChart";
+import { useTheme } from "next-themes";
 
 // Types
 interface Client {
@@ -59,11 +64,12 @@ interface Contract {
 
 export default function Dashboard() {
   const router = useRouter();
+  const { setTheme, theme } = useTheme();
 
   // API Hooks
-  // Fixed: Removed unused 'isLoading' variables
   const { data: contracts = [] } = useGetContractsQuery(undefined);
   const { data: clients = [] } = useGetClientsQuery(undefined);
+  const { data: stats } = useGetStatsSummaryQuery(undefined);
 
   const [createContract] = useCreateContractMutation();
   const [createClient] = useCreateClientMutation();
@@ -92,7 +98,6 @@ export default function Dashboard() {
     }
   };
 
-  // ✅ Fixed: Added this missing function
   const handleDeleteContract = async (id: number) => {
     if (confirm("Are you sure you want to delete this contract?")) {
       await deleteContract(id);
@@ -129,47 +134,43 @@ export default function Dashboard() {
     setEditingContractId(null);
   };
 
-  // --- CALCULATIONS ---
-  const totalRevenue = contracts.reduce(
-    (sum: number, c: Contract) =>
-      sum + (c.status === "PAID" ? c.totalValue : 0),
-    0,
-  );
-  const pendingRevenue = contracts.reduce(
-    (sum: number, c: Contract) =>
-      sum + (c.status !== "PAID" ? c.totalValue : 0),
-    0,
-  );
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case "PAID":
-        return "bg-green-100 text-green-700 hover:bg-green-100 border-green-200";
+        // Using opacity background so it looks good in dark mode too
+        return "bg-green-500/15 text-green-600 dark:text-green-400 border-green-200 dark:border-green-900";
       case "ACTIVE":
-        return "bg-blue-100 text-blue-700 hover:bg-blue-100 border-blue-200";
+        return "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-900";
       case "DRAFT":
-        return "bg-gray-100 text-gray-600 hover:bg-gray-100 border-gray-200";
+        return "bg-slate-500/15 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800";
       default:
-        return "bg-red-100 text-red-700 hover:bg-red-100 border-red-200";
+        return "bg-red-500/15 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900";
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/50">
+    // Replaced bg-slate-50 with bg-background (matches theme)
+    <div className="min-h-screen bg-muted/40 transition-colors duration-300">
       {/* NAVBAR */}
-      <header className="sticky top-0 z-10 w-full border-b bg-white/95 backdrop-blur px-6 py-4 flex justify-between items-center shadow-sm">
+      <header className="sticky top-0 z-10 w-full border-b bg-background/95 backdrop-blur px-6 py-4 flex justify-between items-center shadow-sm">
         <div className="flex items-center gap-2">
-          <div className="bg-slate-900 text-white p-1.5 rounded-md">
+          <div className="bg-primary text-primary-foreground p-1.5 rounded-md">
             <DollarSign className="w-5 h-5" />
           </div>
-          <span className="font-bold text-lg tracking-tight text-slate-900">
+          <span className="font-bold text-lg tracking-tight text-foreground">
             ClientLedger
           </span>
         </div>
         <div className="flex items-center gap-4">
-          <span className="text-sm text-muted-foreground hidden sm:inline-block">
-            Logged in as Admin
-          </span>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          >
+            <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+            <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+          </Button>
+
           <Button
             variant="outline"
             size="sm"
@@ -195,8 +196,8 @@ export default function Dashboard() {
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-slate-900">
-                ${totalRevenue.toLocaleString()}
+              <div className="text-2xl font-bold text-foreground">
+                ${stats?.totalPaidAmount}
               </div>
               <p className="text-xs text-muted-foreground">
                 Collected from paid invoices
@@ -209,8 +210,8 @@ export default function Dashboard() {
               <Briefcase className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-slate-900">
-                ${pendingRevenue.toLocaleString()}
+              <div className="text-2xl font-bold text-foreground">
+                ${stats?.totalPendingAmount}
               </div>
               <p className="text-xs text-muted-foreground">
                 Draft or active contracts
@@ -225,10 +226,43 @@ export default function Dashboard() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-slate-900">
-                {clients.length}
+              <div className="text-2xl font-bold text-foreground">
+                {stats?.totalClients}
               </div>
               <p className="text-xs text-muted-foreground">Total client base</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Total Overdue
+              </CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-foreground">
+                {stats?.totalOverdueAmount}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Unpaid on time work
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle>Paid vs Unpaid</CardTitle>
+              <CardDescription>Revenue breakdown</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <PaidUnpaidPieChart
+                paid={stats?.totalPaidAmount ?? 0}
+                unpaid={
+                  (stats?.totalPendingAmount ?? 0) +
+                  (stats?.totalOverdueAmount ?? 0)
+                }
+              />
             </CardContent>
           </Card>
         </div>
@@ -250,13 +284,13 @@ export default function Dashboard() {
                   onClick={() => setSelectedClientId(client.id)}
                   className={`group flex items-center justify-between p-3 rounded-lg text-sm font-medium transition-all cursor-pointer border ${
                     selectedClientId === client.id
-                      ? "bg-slate-900 text-white border-slate-900 shadow-md"
-                      : "bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                      ? "bg-primary text-primary-foreground border-primary shadow-md"
+                      : "bg-card text-card-foreground border-border hover:border-input hover:bg-accent"
                   }`}
                 >
                   <div className="flex items-center gap-3 truncate">
                     <div
-                      className={`w-2 h-2 rounded-full ${selectedClientId === client.id ? "bg-green-400" : "bg-slate-300"}`}
+                      className={`w-2 h-2 rounded-full ${selectedClientId === client.id ? "bg-green-400" : "bg-muted-foreground/30"}`}
                     />
                     {client.name}
                   </div>
@@ -265,16 +299,16 @@ export default function Dashboard() {
                       e.stopPropagation();
                       handleDeleteClient(client.id);
                     }}
-                    className={`p-1 rounded-md opacity-0 group-hover:opacity-100 transition ${selectedClientId === client.id ? "hover:bg-slate-800" : "hover:bg-red-50"}`}
+                    className={`p-1 rounded-md opacity-0 group-hover:opacity-100 transition ${selectedClientId === client.id ? "hover:bg-primary-foreground/20" : "hover:bg-destructive/10"}`}
                   >
                     <Trash2
-                      className={`w-4 h-4 ${selectedClientId === client.id ? "text-slate-400 hover:text-red-400" : "text-slate-400 hover:text-red-500"}`}
+                      className={`w-4 h-4 ${selectedClientId === client.id ? "text-primary-foreground/70" : "text-muted-foreground hover:text-destructive"}`}
                     />
                   </div>
                 </div>
               ))}
               {clients.length === 0 && (
-                <div className="text-center p-8 border border-dashed rounded-lg bg-slate-50">
+                <div className="text-center p-8 border border-dashed rounded-lg bg-card">
                   <p className="text-sm text-muted-foreground">
                     No clients yet.
                   </p>
@@ -388,6 +422,7 @@ export default function Dashboard() {
                                 <option value="DRAFT">Draft</option>
                                 <option value="ACTIVE">Active</option>
                                 <option value="PAID">Paid</option>
+                                <option value="OVERDUE">OVERDUE</option>
                               </select>
                             </div>
                           </div>
@@ -406,7 +441,7 @@ export default function Dashboard() {
 
                         <Separator />
 
-                        <CardFooter className="p-3 bg-slate-50/50 flex justify-between">
+                        <CardFooter className="p-3 bg-muted/40 flex justify-between">
                           <div className="flex gap-1">
                             <Button
                               size="icon"
@@ -414,7 +449,7 @@ export default function Dashboard() {
                               className="h-8 w-8"
                               onClick={() => startEditContract(c)}
                             >
-                              <Edit2 className="w-3.5 h-3.5 text-slate-500" />
+                              <Edit2 className="w-3.5 h-3.5 text-muted-foreground" />
                             </Button>
                             <Button
                               size="icon"
@@ -422,11 +457,11 @@ export default function Dashboard() {
                               className="h-8 w-8"
                               onClick={() => handleDeleteContract(c.id)}
                             >
-                              <Trash2 className="w-3.5 h-3.5 text-slate-500 hover:text-red-500" />
+                              <Trash2 className="w-3.5 h-3.5 text-muted-foreground hover:text-destructive" />
                             </Button>
                           </div>
                           {c.status === "PAID" && (
-                            <div className="flex items-center gap-1 text-xs text-green-600 font-medium">
+                            <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-500 font-medium">
                               <CheckCircle2 className="w-3.5 h-3.5" />
                               Completed
                             </div>

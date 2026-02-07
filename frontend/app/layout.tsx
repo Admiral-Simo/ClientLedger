@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-
+import { ThemeProvider } from "@/components/theme-provider";
 import ConfigureAmplify from "@/components/ConfigureAmplify";
 import AuthListener from "@/components/AuthListener";
-import StoreProvider from "@/components/Providers";
+import Providers from "@/components/Providers";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -19,16 +19,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    // ✅ FIX: Add suppressHydrationWarning HERE
+    <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        {/* Initialize Config First */}
-        <ConfigureAmplify />
-
-        <StoreProvider>
-          {/* Active Listener for Redirects */}
-          <AuthListener />
-          {children}
-        </StoreProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <ConfigureAmplify />
+          <Providers>
+            <AuthListener />
+            {children}
+          </Providers>
+        </ThemeProvider>
       </body>
     </html>
   );
