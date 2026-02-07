@@ -1,37 +1,68 @@
-🚀 Backlog: Next Week (The "Features & Polish" Sprint)
-Now that the "plumbing" works, next week is about making it a usable product.
+# 📅 Next Week's Backlog: "Refinement & Expansion"
+Now that the "Skeleton" is strong, next week is about adding Muscle and Skin. We want to turn this from a "Functional App" into a "Professional SaaS."
 
-Theme: "CRUD & Visuals"
+Theme: User Customization & Professional Polish
 
-# Monday: Complete the CRUD (Update & Delete)
-Backend: Add endpoints to Delete and Edit Clients and Contracts.
+## 🎫 Ticket #1: Dynamic User Profile & Settings
+-> The Problem: Right now, the PDF Invoice says "ClientLedger Inc." and "admin@clientledger.com" (hardcoded).
 
-Challenge: If you delete a Client, what happens to their Contracts? (Cascade delete vs. Prevent delete).
+-> The Business Value: Users can't use this for their business unless their name is on the invoice.
 
-Frontend: Add "Trash" icons and "Edit" buttons to the cards.
+The Task:
 
-# Tuesday: Dashboard Analytics (The "SaaS" Feel)
-Backend: Create a /stats endpoint.
+- Create a Settings Page (/dashboard/settings).
 
-Calculate: Total Revenue, Total Pending Amount, Number of Active Clients.
+- Add fields: Company Name, Address, Tax ID, Phone.
 
-Frontend: Add 3 "Scorecards" at the top of the dashboard to display these numbers.
+- Save this to a new UserProfile table in RDS linked to Cognito Sub.
 
-Bonus: Add a simple pie chart (Paid vs. Unpaid).
+Backend: Update PdfService to read from this User Profile instead of hardcoded strings.
 
-# Wednesday: Contract Status Workflow
-Feature: Allow moving a contract through states: DRAFT → SENT → PAID.
+## 🎫 Ticket #2: Search & Filter (The "Power User" Feature)
+The Problem: As soon as a user adds 10+ contracts, the dashboard becomes a scroll-fest.
 
-UI: Add a dropdown or status chips on the Contract card to change the status securely.
+-> The Business Value: Efficiency. Users need to find "That one unpaid contract from John" instantly.
 
-# Thursday: PDF Generation (The High Value Feature)
-Backend: Use a library like OpenPDF or iText to generate a simple PDF invoice when a user clicks "Download".
+The Task:
 
-Endpoint: GET /api/contracts/{id}/pdf.
+- Add a Search Bar to the Dashboard (Filter by Client Name or Contract Title).
 
-# Friday: UI/UX Cleanup & Mobile Fix
-Styling: Replace the raw HTML buttons with a nice UI library (like Shadcn/UI or standard Tailwind components) so it doesn't look like a prototype.
+- Add Filter Chips: "Show Only Overdue", "Show Only Drafts".
 
-Mobile Access: Since CloudFront is delayed, we might look at moving the Frontend to AWS Amplify (which gives free HTTPS automatically) to solve the "HTTP on mobile" issue permanently.
+- Implement this filtering on the Frontend first (easier), or move to Backend filtering if you feel ambitious.
 
-What is your preference for Monday? Do you want to start with the Delete/Edit features or jump straight to the Analytics/Stats?
+## 🎫 Ticket #3: The "Send Invoice" Feature (AWS SES Integration)
+The Problem: Downloading a PDF is great, but users want to email it directly to the client.
+
+-> The Business Value: Automation. You save the user a step (download -> open gmail -> attach -> send).
+
+The Task:
+
+- Terraform: Add AWS SES (Simple Email Service) to your infrastructure.
+
+- Backend: Create an endpoint POST /api/contracts/{id}/email.
+
+- Logic: Generate the PDF in memory, attach it to an email, and send it to client.email.
+
+## 🎫 Ticket #4: Global Toast Notifications (UX Polish)
+-> The Problem: alert("Saved!") is ugly and blocks the screen.
+
+-> The Business Value: Perceived Quality. Smooth notifications make the app feel expensive.
+
+The Task:
+
+- Install sonner or react-hot-toast (Shadcn uses Sonner).
+
+- Replace all alert() and confirm() calls with beautiful, non-blocking Toasts (Success, Error, Loading).
+
+# Schedule
+
+Sunday: Settings Page & Profile DB. (Get the PDF looking real).
+
+Sunday: Search & Filter. (Make the dashboard feel snappy).
+
+Monday: AWS SES Setup. (This is the tricky DevOps part).
+
+Tuesday: Email Backend Logic. (Sending the actual emails).
+
+Wednesday: UX Polish (Toasts) & Bug Fixes.
