@@ -25,7 +25,7 @@ public class ContractController {
 
     // 1. The DTO (Data Transfer Object)
     // This tells Spring: "Expect JSON with title, value, and clientId"
-    public record ContractRequest(String title, BigDecimal totalValue, Long clientId) {}
+    public record ContractRequest(String title, BigDecimal totalValue, Long clientId, String currency) {}
 
     @PostMapping
     public Contract createContract(@RequestBody ContractRequest request, @AuthenticationPrincipal Jwt jwt) {
@@ -41,10 +41,14 @@ public class ContractController {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access Denied");
         }
 
-        // 4. Create and Save
         Contract contract = new Contract();
         contract.setTitle(request.title());
         contract.setTotalValue(request.totalValue());
+        if (request.currency().equals("Default")) {
+            contract.setCurrency(client.getDefaultCurrency());
+        } else {
+            contract.setCurrency(request.currency());
+        }
         contract.setStatus(ContractStatus.DRAFT);
         contract.setOwnerId(userId);
         contract.setClient(client); // <--- This fixes the "Column 'client_id' cannot be null" error
