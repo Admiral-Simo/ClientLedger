@@ -1,17 +1,34 @@
-import Providers from "@/components/Providers";
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
 
-export const metadata = { title: "Client Ledger" };
+import ConfigureAmplify from "@/components/ConfigureAmplify";
+import AuthListener from "@/components/AuthListener";
+import StoreProvider from "@/components/Providers";
+
+const inter = Inter({ subsets: ["latin"] });
+
+export const metadata: Metadata = {
+  title: "ClientLedger",
+  description: "Freelance Contract Management",
+};
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <html lang="en">
-      <body className="bg-gray-100 min-h-screen">
-        <Providers>{children}</Providers>
+      <body className={inter.className}>
+        {/* Initialize Config First */}
+        <ConfigureAmplify />
+
+        <StoreProvider>
+          {/* Active Listener for Redirects */}
+          <AuthListener />
+          {children}
+        </StoreProvider>
       </body>
     </html>
   );

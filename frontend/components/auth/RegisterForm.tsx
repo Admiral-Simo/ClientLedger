@@ -12,6 +12,9 @@ export default function RegisterForm({
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+    setError("");
+
     try {
       await signUp({
         username: email,
@@ -19,11 +22,17 @@ export default function RegisterForm({
         options: { userAttributes: { email } },
       });
       onSuccess(email);
-    } catch (err: any) {
-      alert(`Error: ${err.message}`);
+    } catch (err: unknown) {
+      // ✅ FIXED: Changed 'any' to 'unknown'
+      console.error(err);
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Failed to create account");
+      }
+      setLoading(false);
     }
   };
-
   return (
     <form onSubmit={handleRegister} className="flex flex-col gap-4">
       <input

@@ -4,7 +4,7 @@ import { fetchAuthSession } from "aws-amplify/auth";
 export const apiSlice = createApi({
   reducerPath: "api",
   baseQuery: fetchBaseQuery({
-    baseUrl: process.env.NEXT_PUBLIC_API_URL,
+    baseUrl: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api",
     prepareHeaders: async (headers) => {
       try {
         const session = await fetchAuthSession();
@@ -12,15 +12,46 @@ export const apiSlice = createApi({
         if (token) {
           headers.set("Authorization", `Bearer ${token}`);
         }
-      } catch (err) {
-        console.log("No active session");
+      } catch {
+        // We ignore the error here. If the user isn't logged in,
+        // no token is attached, and the backend will return 401.
       }
       return headers;
     },
   }),
-  tagTypes: ["Contracts", "Clients"],
+  tagTypes: ["Clients", "Contracts"],
   endpoints: (builder) => ({
-    getContracts: builder.query<any, void>({
+    // CLIENTS
+    getClients: builder.query({
+      query: () => "/clients",
+      providesTags: ["Clients"],
+    }),
+    createClient: builder.mutation({
+      query: (body) => ({
+        url: "/clients",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Clients"],
+    }),
+    deleteClient: builder.mutation({
+      query: (id) => ({
+        url: `/clients/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Clients", "Contracts"],
+    }),
+    updateClient: builder.mutation({
+      query: ({ id, ...patch }) => ({
+        url: `/clients/${id}`,
+        method: "PUT",
+        body: patch,
+      }),
+      invalidatesTags: ["Clients"],
+    }),
+
+    // CONTRACTS
+    getContracts: builder.query({
       query: () => "/contracts",
       providesTags: ["Contracts"],
     }),
@@ -32,36 +63,6 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ["Contracts"],
     }),
-    getClients: builder.query({
-      query: () => "/clients",
-      providesTags: ["Clients"],
-    }),
-    createClient: builder.mutation({
-      query: (newClient) => ({
-        url: "/clients",
-        method: "POST",
-        body: newClient,
-      }),
-      invalidatesTags: ["Clients"],
-    }),
-    deleteClient: builder.mutation({
-      query: (id) => ({
-        url: `/clients/${id}`,
-        method: "DELETE",
-      }),
-      invalidatesTags: ["Clients", "Contracts"], // Deleting a client deletes their contracts (Cascade)
-    }),
-
-    updateClient: builder.mutation({
-      query: ({ id, ...patch }) => ({
-        url: `/clients/${id}`,
-        method: "PUT",
-        body: patch,
-      }),
-      invalidatesTags: ["Clients"],
-    }),
-
-    // --- CONTRACTS ---
     deleteContract: builder.mutation({
       query: (id) => ({
         url: `/contracts/${id}`,
@@ -69,7 +70,6 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ["Contracts"],
     }),
-
     updateContract: builder.mutation({
       query: ({ id, ...patch }) => ({
         url: `/contracts/${id}`,
@@ -78,12 +78,11 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ["Contracts"],
     }),
-
     updateContractStatus: builder.mutation({
       query: ({ id, status }) => ({
         url: `/contracts/${id}/status`,
         method: "PUT",
-        params: { status }, // Sends ?status=PAID
+        params: { status },
       }),
       invalidatesTags: ["Contracts"],
     }),
@@ -91,13 +90,13 @@ export const apiSlice = createApi({
 });
 
 export const {
+  useGetClientsQuery,
+  useCreateClientMutation,
+  useDeleteClientMutation,
+  useUpdateClientMutation,
   useGetContractsQuery,
   useCreateContractMutation,
-  useCreateClientMutation,
-  useGetClientsQuery,
-  useDeleteClientMutation,
   useDeleteContractMutation,
-  useUpdateClientMutation,
   useUpdateContractMutation,
   useUpdateContractStatusMutation,
 } = apiSlice;

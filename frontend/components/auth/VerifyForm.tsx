@@ -1,46 +1,67 @@
 "use client";
+
 import { useState } from "react";
 import { confirmSignUp } from "aws-amplify/auth";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, AlertCircle } from "lucide-react";
 
-export default function VerifyForm({
-  email,
-  onSuccess,
-}: {
-  email: string;
-  onSuccess: () => void;
-}) {
+export default function VerifyForm({ email }: { email: string }) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [code, setCode] = useState("");
 
-  const handleVerify = async (e: React.FormEvent) => {
+  const handleVerify = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setLoading(true);
+    setError("");
+
     try {
       await confirmSignUp({ username: email, confirmationCode: code });
-      alert("Verified!");
-      onSuccess();
-    } catch (err: any) {
-      alert(`Error: ${err.message}`);
+      // Redirect to login after successful verification
+      router.push("/");
+    } catch (err: unknown) {
+      console.error(err);
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Invalid verification code");
+      }
+      setLoading(false);
     }
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <p className="text-sm">Code sent to: {email}</p>
-      <form onSubmit={handleVerify} className="flex flex-col gap-4">
-        <input
-          type="text"
-          placeholder="Confirmation Code"
+    <form onSubmit={handleVerify} className="space-y-4">
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      <div className="space-y-2">
+        <Label htmlFor="code">Verification Code</Label>
+        <Input
+          id="code"
+          placeholder="123456"
+          className="text-center text-lg tracking-widest"
           value={code}
           onChange={(e) => setCode(e.target.value)}
-          className="p-2 border rounded text-black"
+          maxLength={6}
+          disabled={loading}
           required
         />
-        <button
-          type="submit"
-          className="bg-green-600 text-white p-2 rounded hover:bg-green-700"
-        >
-          Verify Account
-        </button>
-      </form>
-    </div>
+      </div>
+
+      <Button className="w-full" type="submit" disabled={loading}>
+        {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        Verify Account
+      </Button>
+    </form>
   );
 }
