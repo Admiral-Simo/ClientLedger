@@ -1,4 +1,5 @@
 "use client";
+
 import {
   useGetContractsQuery,
   useCreateContractMutation,
@@ -13,7 +14,32 @@ import { signOut } from "aws-amplify/auth";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-// --- 1. Define Types (Fixes "Unexpected any") ---
+// UI Components
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+
+// Icons
+import {
+  LogOut,
+  Plus,
+  Trash2,
+  Edit2,
+  Users,
+  DollarSign,
+  Briefcase,
+  CheckCircle2,
+} from "lucide-react";
+
+// Types
 interface Client {
   id: number;
   name: string;
@@ -34,17 +60,14 @@ interface Contract {
 export default function Dashboard() {
   const router = useRouter();
 
-  // --- 2. Fix "Expected 1-2 arguments" by passing 'undefined' ---
-  const { data: contracts, isLoading: loadingContracts } =
-    useGetContractsQuery(undefined);
-  const { data: clients, isLoading: loadingClients } =
-    useGetClientsQuery(undefined);
+  // API Hooks
+  // Fixed: Removed unused 'isLoading' variables
+  const { data: contracts = [] } = useGetContractsQuery(undefined);
+  const { data: clients = [] } = useGetClientsQuery(undefined);
 
-  // Mutations
   const [createContract] = useCreateContractMutation();
   const [createClient] = useCreateClientMutation();
   const [deleteClient] = useDeleteClientMutation();
-  // Removed unused 'updateClient' to fix the Warning
   const [deleteContract] = useDeleteContractMutation();
   const [updateContract] = useUpdateContractMutation();
   const [updateStatus] = useUpdateContractStatusMutation();
@@ -61,7 +84,7 @@ export default function Dashboard() {
   const handleDeleteClient = async (id: number) => {
     if (
       confirm(
-        "Are you sure? This will delete all contracts for this client too!",
+        "⚠️ This will permanently delete this client and ALL their contracts.",
       )
     ) {
       await deleteClient(id);
@@ -69,8 +92,9 @@ export default function Dashboard() {
     }
   };
 
+  // ✅ Fixed: Added this missing function
   const handleDeleteContract = async (id: number) => {
-    if (confirm("Delete this contract?")) {
+    if (confirm("Are you sure you want to delete this contract?")) {
       await deleteContract(id);
     }
   };
@@ -80,17 +104,17 @@ export default function Dashboard() {
     if (!name) return;
     await createClient({
       name,
-      email: "email@example.com",
+      email: "contact@client.com",
       country: "Morocco",
       defaultCurrency: "MAD",
     });
   };
 
   const handleCreateContract = async () => {
-    if (!selectedClientId) return alert("Select a client first!");
+    if (!selectedClientId) return;
     await createContract({
-      title: "New Project",
-      totalValue: 1000,
+      title: "New Project Scope",
+      totalValue: 0,
       clientId: selectedClientId,
     });
   };
@@ -105,211 +129,317 @@ export default function Dashboard() {
     setEditingContractId(null);
   };
 
+  // --- CALCULATIONS ---
+  const totalRevenue = contracts.reduce(
+    (sum: number, c: Contract) =>
+      sum + (c.status === "PAID" ? c.totalValue : 0),
+    0,
+  );
+  const pendingRevenue = contracts.reduce(
+    (sum: number, c: Contract) =>
+      sum + (c.status !== "PAID" ? c.totalValue : 0),
+    0,
+  );
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "PAID":
+        return "bg-green-100 text-green-700 hover:bg-green-100 border-green-200";
+      case "ACTIVE":
+        return "bg-blue-100 text-blue-700 hover:bg-blue-100 border-blue-200";
+      case "DRAFT":
+        return "bg-gray-100 text-gray-600 hover:bg-gray-100 border-gray-200";
+      default:
+        return "bg-red-100 text-red-700 hover:bg-red-100 border-red-200";
+    }
+  };
+
   return (
-    <div className="p-8 max-w-6xl mx-auto min-h-screen bg-gray-50 text-gray-800">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-8 pb-4 border-b border-gray-200">
-        <h1 className="text-3xl font-bold text-gray-900">ClientLedger</h1>
-        <button
-          onClick={() => {
-            signOut();
-            router.push("/");
-          }}
-          className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded transition"
-        >
-          Sign Out
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* LEFT COLUMN: CLIENTS */}
-        <div className="md:col-span-1 space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold">Clients</h2>
-            <button
-              onClick={handleCreateClient}
-              className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
-            >
-              + New
-            </button>
+    <div className="min-h-screen bg-slate-50/50">
+      {/* NAVBAR */}
+      <header className="sticky top-0 z-10 w-full border-b bg-white/95 backdrop-blur px-6 py-4 flex justify-between items-center shadow-sm">
+        <div className="flex items-center gap-2">
+          <div className="bg-slate-900 text-white p-1.5 rounded-md">
+            <DollarSign className="w-5 h-5" />
           </div>
+          <span className="font-bold text-lg tracking-tight text-slate-900">
+            ClientLedger
+          </span>
+        </div>
+        <div className="flex items-center gap-4">
+          <span className="text-sm text-muted-foreground hidden sm:inline-block">
+            Logged in as Admin
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              signOut();
+              router.push("/");
+            }}
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Sign Out
+          </Button>
+        </div>
+      </header>
 
-          <div className="space-y-2">
-            {loadingClients ? (
-              <p>Loading...</p>
-            ) : (
-              clients?.map((client: Client) => (
+      <main className="max-w-7xl mx-auto p-6 space-y-8">
+        {/* STATS OVERVIEW */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Total Revenue
+              </CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-slate-900">
+                ${totalRevenue.toLocaleString()}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Collected from paid invoices
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Pending</CardTitle>
+              <Briefcase className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-slate-900">
+                ${pendingRevenue.toLocaleString()}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Draft or active contracts
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Active Clients
+              </CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-slate-900">
+                {clients.length}
+              </div>
+              <p className="text-xs text-muted-foreground">Total client base</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          {/* LEFT SIDEBAR: CLIENTS */}
+          <div className="lg:col-span-1 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold tracking-tight">Clients</h2>
+              <Button size="icon" variant="ghost" onClick={handleCreateClient}>
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+
+            <div className="space-y-2">
+              {clients.map((client: Client) => (
                 <div
                   key={client.id}
-                  className={`group flex justify-between items-center p-3 rounded cursor-pointer border transition ${
-                    selectedClientId === client.id
-                      ? "bg-blue-50 border-blue-500 shadow-sm"
-                      : "bg-white border-transparent hover:bg-gray-100"
-                  }`}
                   onClick={() => setSelectedClientId(client.id)}
+                  className={`group flex items-center justify-between p-3 rounded-lg text-sm font-medium transition-all cursor-pointer border ${
+                    selectedClientId === client.id
+                      ? "bg-slate-900 text-white border-slate-900 shadow-md"
+                      : "bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                  }`}
                 >
-                  <div className="truncate font-medium">{client.name}</div>
-                  <button
+                  <div className="flex items-center gap-3 truncate">
+                    <div
+                      className={`w-2 h-2 rounded-full ${selectedClientId === client.id ? "bg-green-400" : "bg-slate-300"}`}
+                    />
+                    {client.name}
+                  </div>
+                  <div
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDeleteClient(client.id);
                     }}
-                    className="text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition px-2"
-                    title="Delete Client"
+                    className={`p-1 rounded-md opacity-0 group-hover:opacity-100 transition ${selectedClientId === client.id ? "hover:bg-slate-800" : "hover:bg-red-50"}`}
                   >
-                    🗑️
-                  </button>
+                    <Trash2
+                      className={`w-4 h-4 ${selectedClientId === client.id ? "text-slate-400 hover:text-red-400" : "text-slate-400 hover:text-red-500"}`}
+                    />
+                  </div>
                 </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* RIGHT COLUMN: CONTRACTS */}
-        <div className="md:col-span-2">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold">
-              {selectedClientId
-                ? `Contracts for ${clients?.find((c: Client) => c.id === selectedClientId)?.name || "Client"}`
-                : "All Contracts"}
-            </h2>
-            <button
-              onClick={handleCreateContract}
-              disabled={!selectedClientId}
-              className={`px-4 py-2 rounded text-white text-sm font-medium ${
-                selectedClientId
-                  ? "bg-green-600 hover:bg-green-700"
-                  : "bg-gray-300 cursor-not-allowed"
-              }`}
-            >
-              + Add Contract
-            </button>
+              ))}
+              {clients.length === 0 && (
+                <div className="text-center p-8 border border-dashed rounded-lg bg-slate-50">
+                  <p className="text-sm text-muted-foreground">
+                    No clients yet.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="grid gap-4">
-            {loadingContracts ? (
-              <p>Loading...</p>
-            ) : (
-              contracts
-                ?.filter(
+          {/* MAIN CONTENT: CONTRACTS */}
+          <div className="lg:col-span-3 space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold tracking-tight">
+                  {selectedClientId
+                    ? `Contracts for ${clients.find((c: Client) => c.id === selectedClientId)?.name}`
+                    : "Recent Contracts"}
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Manage your agreements and billing.
+                </p>
+              </div>
+              <Button
+                onClick={handleCreateContract}
+                disabled={!selectedClientId}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                New Contract
+              </Button>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
+              {contracts
+                .filter(
                   (c: Contract) =>
                     !selectedClientId || c.client?.id === selectedClientId,
                 )
                 .map((c: Contract) => (
-                  <div
-                    key={c.id}
-                    className="bg-white p-5 rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition"
-                  >
+                  <Card key={c.id} className="transition-all hover:shadow-md">
                     {/* EDIT MODE */}
                     {editingContractId === c.id ? (
-                      <div className="flex flex-col gap-3">
-                        <input
-                          className="border p-2 rounded"
-                          value={editForm.title}
-                          onChange={(e) =>
-                            setEditForm({ ...editForm, title: e.target.value })
-                          }
-                        />
-                        <input
-                          type="number"
-                          className="border p-2 rounded"
-                          value={editForm.totalValue}
-                          onChange={(e) =>
-                            setEditForm({
-                              ...editForm,
-                              totalValue: Number(e.target.value),
-                            })
-                          }
-                        />
-                        <div className="flex gap-2">
-                          <button
+                      <div className="p-6 space-y-4">
+                        <div className="space-y-2">
+                          <label className="text-xs font-semibold uppercase text-muted-foreground">
+                            Project Title
+                          </label>
+                          <Input
+                            value={editForm.title}
+                            onChange={(e) =>
+                              setEditForm({
+                                ...editForm,
+                                title: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-semibold uppercase text-muted-foreground">
+                            Value
+                          </label>
+                          <Input
+                            type="number"
+                            value={editForm.totalValue}
+                            onChange={(e) =>
+                              setEditForm({
+                                ...editForm,
+                                totalValue: Number(e.target.value),
+                              })
+                            }
+                          />
+                        </div>
+                        <div className="flex gap-2 pt-2">
+                          <Button
+                            size="sm"
                             onClick={() => saveContract(c.id)}
-                            className="bg-blue-600 text-white px-3 py-1 rounded text-sm"
+                            className="w-full"
                           >
                             Save
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
                             onClick={() => setEditingContractId(null)}
-                            className="bg-gray-300 px-3 py-1 rounded text-sm"
+                            className="w-full"
                           >
                             Cancel
-                          </button>
+                          </Button>
                         </div>
                       </div>
                     ) : (
-                      // VIEW MODE
+                      /* VIEW MODE */
                       <>
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <h3 className="font-bold text-lg text-gray-800">
+                        <CardHeader className="flex flex-row items-start justify-between pb-2">
+                          <div className="space-y-1">
+                            <CardTitle className="text-base font-bold leading-none">
                               {c.title}
-                            </h3>
-                            <p className="text-sm text-gray-500">
-                              {c.client?.name}
-                            </p>
+                            </CardTitle>
+                            <CardDescription>{c.client?.name}</CardDescription>
                           </div>
-                          <div className="flex items-center gap-2">
-                            {/* Status Dropdown */}
-                            <select
-                              value={c.status}
-                              onChange={(e) =>
-                                updateStatus({
-                                  id: c.id,
-                                  status: e.target.value,
-                                })
-                              }
-                              className={`text-xs font-bold px-2 py-1 rounded border-0 cursor-pointer ${
-                                c.status === "PAID"
-                                  ? "bg-green-100 text-green-800"
-                                  : c.status === "DRAFT"
-                                    ? "bg-gray-100 text-gray-800"
-                                    : "bg-yellow-100 text-yellow-800"
-                              }`}
-                            >
-                              <option value="DRAFT">DRAFT</option>
-                              <option value="ACTIVE">ACTIVE</option>
-                              <option value="PAID">PAID</option>
-                            </select>
+                          <div className="flex flex-col items-end gap-1">
+                            <div className="relative">
+                              <select
+                                value={c.status}
+                                onChange={(e) =>
+                                  updateStatus({
+                                    id: c.id,
+                                    status: e.target.value,
+                                  })
+                                }
+                                className={`appearance-none text-[10px] font-bold px-2.5 py-0.5 rounded-full border cursor-pointer uppercase tracking-wider ${getStatusColor(c.status)}`}
+                              >
+                                <option value="DRAFT">Draft</option>
+                                <option value="ACTIVE">Active</option>
+                                <option value="PAID">Paid</option>
+                              </select>
+                            </div>
                           </div>
-                        </div>
+                        </CardHeader>
 
-                        <div className="flex justify-between items-end mt-4">
-                          <div className="text-2xl font-bold text-gray-900">
-                            {c.totalValue}{" "}
-                            <span className="text-sm text-gray-400">
+                        <CardContent>
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-2xl font-bold tracking-tight">
+                              {c.totalValue.toLocaleString()}
+                            </span>
+                            <span className="text-xs text-muted-foreground font-medium uppercase">
                               {c.currency}
                             </span>
                           </div>
+                        </CardContent>
 
-                          <div className="flex gap-2">
-                            <button
+                        <Separator />
+
+                        <CardFooter className="p-3 bg-slate-50/50 flex justify-between">
+                          <div className="flex gap-1">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
                               onClick={() => startEditContract(c)}
-                              className="text-gray-400 hover:text-blue-600 p-1"
-                              title="Edit"
                             >
-                              ✏️
-                            </button>
-                            <button
+                              <Edit2 className="w-3.5 h-3.5 text-slate-500" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
                               onClick={() => handleDeleteContract(c.id)}
-                              className="text-gray-400 hover:text-red-600 p-1"
-                              title="Delete"
                             >
-                              🗑️
-                            </button>
+                              <Trash2 className="w-3.5 h-3.5 text-slate-500 hover:text-red-500" />
+                            </Button>
                           </div>
-                        </div>
+                          {c.status === "PAID" && (
+                            <div className="flex items-center gap-1 text-xs text-green-600 font-medium">
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              Completed
+                            </div>
+                          )}
+                        </CardFooter>
                       </>
                     )}
-                  </div>
-                ))
-            )}
-
-            {contracts?.length === 0 && (
-              <p className="text-gray-400 italic">No contracts found.</p>
-            )}
+                  </Card>
+                ))}
+            </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
