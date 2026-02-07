@@ -11,23 +11,35 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Edit2, Trash2, CheckCircle2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Edit2, Trash2, CheckCircle2, Loader2 } from "lucide-react";
 import ContractStatusSelector from "@/components/contract-status-selector";
 import { useDeleteContractMutation } from "@/lib/features/apiSlice";
-import ContractDialog from "./ContractDialog"; // ✅ Import
+import ContractDialog from "./ContractDialog";
 
 interface ContractProps {
   contract: any;
 }
 
 export default function ContractCard({ contract }: ContractProps) {
-  const [isEditOpen, setIsEditOpen] = useState(false); // ✅ State for modal
-  const [deleteContract] = useDeleteContractMutation();
+  const [isEditOpen, setIsEditOpen] = useState(false);
+
+  // Get isLoading state for the delete action
+  const [deleteContract, { isLoading: isDeleting }] =
+    useDeleteContractMutation();
 
   const handleDelete = async () => {
-    if (confirm("Delete this contract?")) {
-      await deleteContract(contract.id);
-    }
+    await deleteContract(contract.id);
   };
 
   return (
@@ -63,23 +75,58 @@ export default function ContractCard({ contract }: ContractProps) {
 
         <CardFooter className="p-3 bg-muted/40 flex justify-between">
           <div className="flex gap-1">
+            {/* EDIT BUTTON */}
             <Button
               size="icon"
               variant="ghost"
               className="h-8 w-8"
-              onClick={() => setIsEditOpen(true)} // ✅ Opens Modal
+              onClick={() => setIsEditOpen(true)}
             >
               <Edit2 className="w-3.5 h-3.5 text-muted-foreground" />
             </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8"
-              onClick={handleDelete}
-            >
-              <Trash2 className="w-3.5 h-3.5 text-muted-foreground hover:text-destructive" />
-            </Button>
+
+            {/* DELETE BUTTON (Wrapped in Alert Dialog) */}
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8"
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-destructive" />
+                  ) : (
+                    <Trash2 className="w-3.5 h-3.5 text-muted-foreground hover:text-destructive" />
+                  )}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete
+                    the contract
+                    <span className="font-semibold text-foreground">
+                      {" "}
+                      "{contract.title}"{" "}
+                    </span>
+                    and remove it from our servers.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDelete}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Delete Contract
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
+
           {contract.status === "PAID" && (
             <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-500 font-medium">
               <CheckCircle2 className="w-3.5 h-3.5" />
@@ -89,11 +136,11 @@ export default function ContractCard({ contract }: ContractProps) {
         </CardFooter>
       </Card>
 
-      {/* ✅ The Edit Modal */}
+      {/* EDIT MODAL */}
       <ContractDialog
         open={isEditOpen}
         onOpenChange={setIsEditOpen}
-        contractToEdit={contract} // Passing data triggers Edit Mode
+        contractToEdit={contract}
       />
     </>
   );
