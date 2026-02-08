@@ -2,6 +2,8 @@ package com.clientledger.backend.contract;
 
 import com.clientledger.backend.client.Client;
 import com.clientledger.backend.client.ClientRepository;
+import com.clientledger.backend.user.UserProfile;
+import com.clientledger.backend.user.UserProfileRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -18,10 +20,12 @@ public class ContractController {
 
     private final ContractRepository contractRepository;
     private final ClientRepository clientRepository;
+    private final UserProfileRepository userProfileRepository;
 
-    public ContractController(ContractRepository contractRepository, ClientRepository clientRepository) {
+    public ContractController(ContractRepository contractRepository, ClientRepository clientRepository, UserProfileRepository userProfileRepository) {
         this.contractRepository = contractRepository;
         this.clientRepository = clientRepository;
+        this.userProfileRepository = userProfileRepository;
     }
 
     // 1. The DTO (Data Transfer Object)
@@ -111,9 +115,10 @@ public class ContractController {
         if (!contract.getOwnerId().equals(userId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access Denied");
         }
+        UserProfile profile = userProfileRepository.findByOwnerId(userId).get();
 
         PdfService pdfService = new PdfService();
-        byte[] pdfBytes = pdfService.generateInvoice(contract);
+        byte[] pdfBytes = pdfService.generateInvoice(contract, profile);
 
         String safeTitle = contract.getTitle().toLowerCase().replaceAll("[^a-zA-Z0-9_-]", "_");
 

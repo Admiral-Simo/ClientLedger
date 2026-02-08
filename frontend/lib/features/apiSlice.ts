@@ -9,6 +9,18 @@ interface StatsSummary {
   totalOverdueAmount: number;
 }
 
+interface UserProfile {
+  companyName?: string;
+
+  address?: string;
+
+  taxID?: string;
+
+  phone?: string;
+
+  ownerId?: string;
+}
+
 export const apiSlice = createApi({
   reducerPath: "api",
   baseQuery: fetchBaseQuery({
@@ -26,7 +38,7 @@ export const apiSlice = createApi({
       return headers;
     },
   }),
-  tagTypes: ["Contracts", "Clients"],
+  tagTypes: ["Contracts", "Clients", "Profile"],
   endpoints: (builder) => ({
     getContracts: builder.query<any, void>({
       query: () => "/contracts",
@@ -100,6 +112,20 @@ export const apiSlice = createApi({
       query: () => "/stats/summary",
       providesTags: ["Contracts", "Clients"],
     }),
+
+    updateProfile: builder.mutation<UserProfile, Partial<UserProfile>>({
+      query: (ProfileData) => ({
+        url: `/profile/update`,
+        method: "POST",
+        body: ProfileData,
+      }),
+      invalidatesTags: ["Profile"],
+    }),
+
+    getProfile: builder.query({
+      query: () => `/profile`,
+      providesTags: ["Profile"],
+    }),
   }),
 });
 
@@ -114,4 +140,6 @@ export const {
   useUpdateContractMutation,
   useUpdateContractStatusMutation,
   useGetStatsSummaryQuery,
+  useUpdateProfileMutation,
+  useGetProfileQuery,
 } = apiSlice;
