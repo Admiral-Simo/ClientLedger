@@ -1,3 +1,4 @@
+import { Contract, ContractFilters, PaginatedResponse } from "@/types";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { fetchAuthSession } from "aws-amplify/auth";
 
@@ -40,10 +41,35 @@ export const apiSlice = createApi({
   }),
   tagTypes: ["Contracts", "Clients", "Profile"],
   endpoints: (builder) => ({
-    getContracts: builder.query<any, void>({
-      query: () => "/contracts",
+    // Inside apiSlice.ts endpoints:
+
+    // Inside apiSlice.ts -> endpoints -> getContracts
+
+    // ✅ CORRECT
+    getContracts: builder.query<PaginatedResponse<Contract>, ContractFilters>({
+      query: (filters = { page: 0, size: 10 }) => {
+        const params = new URLSearchParams();
+
+        params.append("page", (filters.page ?? 0).toString());
+        params.append("size", (filters.size ?? 10).toString());
+
+        if (filters.status && filters.status !== "ALL") {
+          params.append("status", filters.status);
+        }
+        if (filters.search) {
+          params.append("search", filters.search);
+        }
+
+        // 👇 THIS IS LIKELY MISSING
+        if (filters.clientId) {
+          params.append("clientId", filters.clientId.toString());
+        }
+
+        return `/contracts?${params.toString()}`;
+      },
       providesTags: ["Contracts"],
     }),
+
     createContract: builder.mutation({
       query: (body) => ({
         url: "/contracts",

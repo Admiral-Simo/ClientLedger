@@ -4,7 +4,6 @@ import { useState } from "react";
 
 // API
 import {
-  useGetContractsQuery,
   useGetClientsQuery,
   useGetStatsSummaryQuery,
 } from "@/lib/features/apiSlice";
@@ -15,7 +14,9 @@ import ClientList from "@/components/dashboard/ClientList";
 import ContractList from "@/components/dashboard/ContractList";
 
 export default function Dashboard() {
-  const { data: contracts = [] } = useGetContractsQuery(undefined);
+  // 1. REMOVE useGetContractsQuery from here.
+  // We let ContractList handle its own data so pagination works.
+
   const { data: clients = [] } = useGetClientsQuery(undefined);
   const { data: stats } = useGetStatsSummaryQuery(undefined);
 
@@ -26,11 +27,9 @@ export default function Dashboard() {
 
   return (
     <main className="max-w-7xl mx-auto p-6 space-y-8">
-      {/* 1. Stats Section */}
       <StatsOverview stats={stats} />
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* 2. Sidebar (Clients) */}
         <div className="lg:col-span-1">
           <ClientList
             clients={clients}
@@ -39,10 +38,9 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* 3. Main Area (Contracts) */}
         <div className="lg:col-span-3">
+          {/* ✅ PASS THE NAME HERE */}
           <ContractList
-            contracts={contracts}
             selectedClientId={selectedClientId}
             clientName={selectedClient?.name}
           />

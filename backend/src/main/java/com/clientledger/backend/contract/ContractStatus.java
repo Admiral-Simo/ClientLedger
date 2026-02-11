@@ -1,8 +1,9 @@
 package com.clientledger.backend.contract;
 
 public enum ContractStatus {
-    PAID,
-    OVERDUE,
+    DRAFT,
+    PENDING,
     ACTIVE,
-    DRAFT
+    PAID,
+    OVERDUE
 }

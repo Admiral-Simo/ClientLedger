@@ -4,6 +4,9 @@ import com.clientledger.backend.client.Client;
 import com.clientledger.backend.client.ClientRepository;
 import com.clientledger.backend.user.UserProfile;
 import com.clientledger.backend.user.UserProfileRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -12,12 +15,10 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/contracts")
 public class ContractController {
-
     private final ContractRepository contractRepository;
     private final ClientRepository clientRepository;
     private final UserProfileRepository userProfileRepository;
@@ -28,20 +29,16 @@ public class ContractController {
         this.userProfileRepository = userProfileRepository;
     }
 
-    // 1. The DTO (Data Transfer Object)
-    // This tells Spring: "Expect JSON with title, value, and clientId"
+    // DTO Record
     public record ContractRequest(String title, BigDecimal totalValue, Long clientId, String currency) {}
 
     @PostMapping
     public Contract createContract(@RequestBody ContractRequest request, @AuthenticationPrincipal Jwt jwt) {
-        String userId = jwt.getClaimAsString("sub");
+        String userId = jwt.getSubject(); // Use getSubject() for consistency
 
-        // 2. Find the Client
         Client client = clientRepository.findById(request.clientId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Client not found"));
 
-        // 3. SECURITY CHECK: Does this client belong to the logged-in user?
-        // If we skip this, User A could add a contract to User B's client!
         if (!client.getOwnerId().equals(userId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access Denied");
         }
@@ -49,22 +46,49 @@ public class ContractController {
         Contract contract = new Contract();
         contract.setTitle(request.title());
         contract.setTotalValue(request.totalValue());
-        if (request.currency().equals("Default")) {
+
+        // Handle currency default safely
+        if (request.currency() == null || request.currency().equals("Default")) {
             contract.setCurrency(client.getDefaultCurrency());
         } else {
             contract.setCurrency(request.currency());
         }
+
         contract.setStatus(ContractStatus.DRAFT);
         contract.setOwnerId(userId);
-        contract.setClient(client); // <--- This fixes the "Column 'client_id' cannot be null" error
+        contract.setClient(client);
 
         return contractRepository.save(contract);
     }
 
     @GetMapping
-    public List<Contract> getMyContracts(@AuthenticationPrincipal Jwt jwt) {
+    public Page<Contract> getMyContracts(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Long clientId,
+            @RequestParam(required = false) String search
+    ) {
         String userId = jwt.getSubject();
-        return contractRepository.findByOwnerId(userId);
+        Pageable pageable = PageRequest.of(page, size);
+
+        // 1. Convert String "PAID" -> Enum ContractStatus.PAID
+        ContractStatus statusEnum = null;
+        if (status != null && !status.isEmpty() && !status.equals("ALL")) {
+            try {
+                statusEnum = ContractStatus.valueOf(status);
+            } catch (IllegalArgumentException e) {
+            }
+        }
+
+        return contractRepository.findContractsWithFilters(
+                userId,
+                statusEnum,
+                clientId,
+                search,
+                pageable
+        );
     }
 
     @DeleteMapping("/{id}")
@@ -93,20 +117,17 @@ public class ContractController {
     @PutMapping("/{id}")
     public Contract updateContractDetails(@PathVariable Long id, @RequestBody ContractRequest request, @AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
-
         Contract contract = contractRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Contract not found"));
 
         if (!contract.getOwnerId().equals(userId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access Denied");
         }
-
         contract.setTitle(request.title());
         contract.setTotalValue(request.totalValue());
 
         return contractRepository.save(contract);
     }
-
     @GetMapping("{id}/pdf")
     public ResponseEntity<byte[]> downloadInvoice(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
