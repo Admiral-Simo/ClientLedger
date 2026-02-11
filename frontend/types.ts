@@ -1,21 +1,3 @@
-export interface Client {
-  id: number;
-  name: string;
-  email: string;
-  // add other client fields if needed
-}
-
-export interface Contract {
-  id: number;
-  title: string;
-  totalValue: number;
-  currency: string;
-  status: "DRAFT" | "PENDING" | "PAID" | "OVERDUE";
-  createdAt: string; // ISO Date string
-  ownerId: string;
-  client: Client;
-}
-
 export interface PaginatedResponse<T> {
   content: T[];
   totalPages: number;
@@ -33,4 +15,21 @@ export interface ContractFilters {
   status?: string;
   search?: string;
   clientId?: number;
+}
+
+export interface Client {
+  id: number;
+  name: string;
+  email: string;
+  country: string;
+  defaultCurrency: string;
+  ownerId: string;
+}
+
+export interface Contract {
+  id: number;
+  title: string;
+  totalValue: number;
+  status: "DRAFT" | "PENDING" | "PAID" | "OVERDUE" | "ACTIVE";
+  client: Client;
 }

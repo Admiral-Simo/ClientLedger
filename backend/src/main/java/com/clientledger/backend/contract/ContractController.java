@@ -133,16 +133,20 @@ public class ContractController {
         String userId = jwt.getSubject();
         Contract contract = contractRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Contract not found"));
+
         if (!contract.getOwnerId().equals(userId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access Denied");
         }
-        UserProfile profile = userProfileRepository.findByOwnerId(userId).get();
+
+        // ✅ FIXED: Handle missing profile safely
+        UserProfile profile = userProfileRepository.findByOwnerId(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Please complete your Profile/Settings before generating an invoice."));
 
         PdfService pdfService = new PdfService();
         byte[] pdfBytes = pdfService.generateInvoice(contract, profile);
 
         String safeTitle = contract.getTitle().toLowerCase().replaceAll("[^a-zA-Z0-9_-]", "_");
-
 
         return ResponseEntity.ok()
                 .header("Content-Disposition", "attachment; filename=invoice_" + safeTitle + ".pdf")

@@ -34,3 +34,7 @@ VALUES
 (112, 'Legal CRM Setup', 2500.00, 'GBP', 'PAID', 104, '31e990ae-a0f1-702d-feff-9443c3e0d1c7', '2025-01-25 12:00:00'),
 (113, 'Email Server Migration', 1800.00, 'GBP', 'PENDING', 104, '31e990ae-a0f1-702d-feff-9443c3e0d1c7', '2025-03-05 15:00:00'),
 (114, 'Cybersecurity Retainer', 1000.00, 'GBP', 'DRAFT', 104, '31e990ae-a0f1-702d-feff-9443c3e0d1c7', CURRENT_TIMESTAMP);
+
+-- Add this to your data.sql
+INSERT INTO settings (id, company_name, address, phone, taxid, owner_id)
+VALUES (100, 'My Freelance Business', '123 Tech Lane', '+123456789', 'TAX-999', '31e990ae-a0f1-702d-feff-9443c3e0d1c7');
