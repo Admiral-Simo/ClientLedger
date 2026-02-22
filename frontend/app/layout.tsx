@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import ConfigureAmplify from "@/components/ConfigureAmplify";
 import AuthListener from "@/components/AuthListener";
 import Providers from "@/components/Providers";
+import { Toaster } from "@/components/ui/sonner";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -34,6 +35,7 @@ export default function RootLayout({
           <Providers>
             <AuthListener />
             {children}
+            <Toaster position="top-center" richColors />
           </Providers>
         </ThemeProvider>
       </body>
