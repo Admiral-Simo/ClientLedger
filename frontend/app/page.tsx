@@ -22,7 +22,7 @@ export default function LandingPage() {
       y: 0,
       transition: { duration: 0.6, ease: "easeOut" },
     },
-  };
+  } as const;
 
   const stagger = {
     visible: { transition: { staggerChildren: 0.15 } },

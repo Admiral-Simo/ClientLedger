@@ -40,7 +40,7 @@ export default function Dashboard() {
       opacity: 1,
       transition: { duration: 0.4, ease: "easeOut" },
     },
-  };
+  } as const; // 👈 Freezes the types
 
   return (
     <div className="relative min-h-screen bg-slate-50/50 dark:bg-[#020617]">

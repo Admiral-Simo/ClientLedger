@@ -32,12 +32,12 @@ export default function StatsOverview({ stats }: StatsProps) {
       opacity: 1,
       transition: { staggerChildren: 0.1 },
     },
-  };
+  } as const;
 
   const item = {
     hidden: { y: 20, opacity: 0 },
     show: { y: 0, opacity: 1, transition: { duration: 0.4, ease: "easeOut" } },
-  };
+  } as const;
 
   return (
     <motion.div
