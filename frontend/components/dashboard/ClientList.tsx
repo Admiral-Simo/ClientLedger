@@ -1,7 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, MoreVertical, Trash2, Users, Search } from "lucide-react";
+import {
+  Plus,
+  MoreVertical,
+  Trash2,
+  Users,
+  Search,
+  UserCircle2,
+} from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -11,6 +19,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { useDeleteClientMutation } from "@/lib/features/apiSlice";
@@ -24,7 +34,7 @@ interface ClientListProps {
 }
 
 export default function ClientList({
-  clients = [], // Fallback, falls undefined
+  clients = [],
   selectedClientId,
   onSelect,
 }: ClientListProps) {
@@ -32,70 +42,114 @@ export default function ClientList({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [deleteClient] = useDeleteClientMutation();
 
-  // Sicherheits-Check: (clients || []) verhindert den Absturz
   const filteredClients = (clients || []).filter((client) =>
     client?.name?.toLowerCase().includes(searchTerm.toLowerCase() || ""),
   );
 
-  const handleDelete = async (e: React.MouseEvent, id: number) => {
+  const handleDelete = async (
+    e: React.MouseEvent,
+    id: number,
+    name: string,
+  ) => {
     e.stopPropagation();
-    if (confirm("Möchtest du diesen Kunden wirklich löschen?")) {
-      await deleteClient(id);
-      if (selectedClientId === id) onSelect(null);
-    }
+
+    // Using Sonner for a much cleaner confirmation flow
+    toast.warning(`Delete client "${name}"?`, {
+      description: "This action cannot be undone.",
+      action: {
+        label: "Delete",
+        onClick: async () => {
+          try {
+            await deleteClient(id).unwrap();
+            toast.success("Client deleted successfully");
+            if (selectedClientId === id) onSelect(null);
+          } catch (err) {
+            toast.error("Error deleting client");
+          }
+        },
+      },
+    });
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-140px)] bg-card rounded-xl border shadow-sm">
-      <div className="p-4 border-b space-y-4">
+    <div className="flex flex-col h-[calc(100vh-140px)] bg-card/50 backdrop-blur-md rounded-2xl border shadow-xl overflow-hidden transition-all duration-300">
+      {/* --- HEADER --- */}
+      <div className="p-5 border-b space-y-4 bg-gradient-to-b from-muted/20 to-transparent">
         <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-lg">Clients</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="font-black text-sm uppercase tracking-widest text-primary/70">
+              Clients
+            </h2>
+            <Badge
+              variant="outline"
+              className="text-[10px] font-bold px-1.5 h-4"
+            >
+              {clients.length}
+            </Badge>
+          </div>
           <Button
             size="icon"
-            variant="ghost"
+            variant="secondary"
+            className="h-8 w-8 rounded-full shadow-sm hover:scale-110 active:scale-95 transition-all"
             onClick={() => setIsDialogOpen(true)}
           >
-            <Plus className="h-5 w-5" />
+            <Plus className="h-4 w-4" />
           </Button>
         </div>
-        <div className="relative">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+
+        <div className="relative group">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground transition-colors group-focus-within:text-primary" />
           <Input
-            placeholder="Filter..."
-            className="pl-9 bg-background"
+            placeholder="Search clients..."
+            className="pl-9 h-9 bg-muted/30 border-none rounded-xl text-xs focus-visible:ring-1 focus-visible:ring-primary/20"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
       </div>
 
-      <ScrollArea className="flex-1 p-3">
-        <div className="space-y-1">
+      {/* --- SCROLLABLE LIST --- */}
+      <ScrollArea className="flex-1 px-2 py-3">
+        <div className="space-y-1 px-1">
+          {/* ALL CLIENTS SELECTOR */}
           <button
             onClick={() => onSelect(null)}
             className={cn(
-              "w-full flex items-center gap-3 p-3 rounded-lg text-sm font-medium transition-all duration-200",
+              "w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition-all duration-300 active:scale-[0.98]",
               selectedClientId === null
-                ? "bg-primary text-primary-foreground shadow-sm"
+                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
           >
             <div
               className={cn(
-                "h-8 w-8 rounded-full flex items-center justify-center shrink-0",
-                selectedClientId === null ? "bg-white/20" : "bg-muted",
+                "h-8 w-8 rounded-lg flex items-center justify-center shrink-0 transition-colors",
+                selectedClientId === null
+                  ? "bg-white/20"
+                  : "bg-primary/10 text-primary",
               )}
             >
               <Users className="h-4 w-4" />
             </div>
-            <span className="flex-1 text-left">All Clients</span>
+            <span className="flex-1 text-left tracking-tight">All Clients</span>
           </button>
 
-          <Separator className="my-2" />
+          <div className="px-3 py-4 flex items-center gap-2">
+            <Separator className="flex-1 opacity-50" />
+            <span className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest">
+              Directory
+            </span>
+            <Separator className="flex-1 opacity-50" />
+          </div>
 
           {filteredClients.length === 0 ? (
-            <div className="text-center py-8 text-sm text-muted-foreground">
-              {clients?.length === 0 ? "Lade..." : "Keine Treffer."}
+            <div className="flex flex-col items-center justify-center py-12 text-center animate-in fade-in duration-500">
+              <UserCircle2 className="h-10 w-10 text-muted-foreground/20 mb-2" />
+              <p className="text-xs font-medium text-muted-foreground/60">
+                {clients?.length === 0
+                  ? "Wait for the data..."
+                  : "No clients found with that name."}
+              </p>
             </div>
           ) : (
             filteredClients.map((client) => (
@@ -103,40 +157,57 @@ export default function ClientList({
                 key={client.id}
                 onClick={() => onSelect(client.id)}
                 className={cn(
-                  "group flex items-center justify-between p-2 rounded-lg text-sm font-medium cursor-pointer transition-all",
+                  "group flex items-center justify-between p-2 rounded-xl text-sm transition-all duration-200 cursor-pointer active:scale-[0.98]",
                   selectedClientId === client.id
-                    ? "bg-secondary text-secondary-foreground"
+                    ? "bg-secondary/80 text-secondary-foreground shadow-sm ring-1 ring-primary/10"
                     : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
                 )}
               >
                 <div className="flex items-center gap-3 overflow-hidden">
-                  <div
+                  <Avatar className="h-8 w-8 rounded-lg border shadow-sm transition-transform group-hover:scale-105">
+                    <AvatarFallback
+                      className={cn(
+                        "text-[10px] font-black",
+                        selectedClientId === client.id
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-background",
+                      )}
+                    >
+                      {client.name.substring(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span
                     className={cn(
-                      "h-2 w-2 rounded-full shrink-0",
-                      selectedClientId === client.id
-                        ? "bg-primary"
-                        : "bg-muted-foreground/30",
+                      "truncate font-semibold tracking-tight",
+                      selectedClientId === client.id && "text-primary",
                     )}
-                  />
-                  <span className="truncate">{client.name}</span>
+                  >
+                    {client.name}
+                  </span>
                 </div>
+
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background/80"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <MoreVertical className="h-3 w-3" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
+                  <DropdownMenuContent
+                    align="end"
+                    className="rounded-xl shadow-xl border-muted-foreground/10"
+                  >
                     <DropdownMenuItem
-                      className="text-destructive"
-                      onClick={(e) => handleDelete(e as any, client.id)}
+                      className="text-destructive font-bold text-xs gap-2 focus:bg-destructive/10 focus:text-destructive cursor-pointer"
+                      onClick={(e) =>
+                        handleDelete(e as any, client.id, client.name)
+                      }
                     >
-                      <Trash2 className="mr-2 h-4 w-4" /> Löschen
+                      <Trash2 className="h-3.5 w-3.5" /> Delete Client
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -145,6 +216,7 @@ export default function ClientList({
           )}
         </div>
       </ScrollArea>
+
       <ClientDialog open={isDialogOpen} onOpenChange={setIsDialogOpen} />
     </div>
   );
