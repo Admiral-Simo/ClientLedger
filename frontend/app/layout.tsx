@@ -19,9 +19,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    // ✅ FIX: Add suppressHydrationWarning HERE
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body
+        className={inter.className}
+        __processed_fec1ca33-333a-45b4-a927-5697198a0d2a__="true"
+      >
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
