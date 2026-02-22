@@ -1,4 +1,5 @@
-import type { Metadata } from "next";
+"use client";
+
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -6,13 +7,9 @@ import ConfigureAmplify from "@/components/ConfigureAmplify";
 import AuthListener from "@/components/AuthListener";
 import Providers from "@/components/Providers";
 import { Toaster } from "@/components/ui/sonner";
+import PublicNavbar from "@/components/PublicNavbar";
 
 const inter = Inter({ subsets: ["latin"] });
-
-export const metadata: Metadata = {
-  title: "ClientLedger",
-  description: "Freelance Contract Management",
-};
 
 export default function RootLayout({
   children,
@@ -21,10 +18,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={inter.className}
-        __processed_fec1ca33-333a-45b4-a927-5697198a0d2a__="true"
-      >
+      <body className={inter.className}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -34,8 +28,13 @@ export default function RootLayout({
           <ConfigureAmplify />
           <Providers>
             <AuthListener />
-            {children}
-            <Toaster position="top-center" richColors />
+            <div className="flex flex-col min-h-screen bg-background">
+              {/* --- SHARED PUBLIC NAVBAR --- */}
+              <PublicNavbar />
+
+              <main className="flex-1">{children}</main>
+            </div>
+            <Toaster position="bottom-right" richColors />
           </Providers>
         </ThemeProvider>
       </body>

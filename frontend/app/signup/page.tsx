@@ -3,31 +3,32 @@
 import { useState } from "react";
 import { signUp, confirmSignUp } from "aws-amplify/auth";
 import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Loader2,
   DollarSign,
-  AlertCircle,
+  Lock,
   CheckCircle2,
-  ArrowLeft,
+  Mail,
+  ChevronRight,
 } from "lucide-react";
 import { useRedirectIfAuthenticated } from "@/hooks/useRedirectIfAuthenticated";
 
 export default function SignupPage() {
   const [step, setStep] = useState<"SIGNUP" | "VERIFY" | "SUCCESS">("SIGNUP");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [form, setForm] = useState({ email: "", password: "" });
   const [code, setCode] = useState("");
+
   useRedirectIfAuthenticated();
 
   const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
     try {
       await signUp({
         username: form.email,
@@ -35,14 +36,12 @@ export default function SignupPage() {
         options: { userAttributes: { email: form.email } },
       });
       setStep("VERIFY");
-      setLoading(false);
-    } catch (err: unknown) {
-      console.error(err);
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("Failed to create account");
-      }
+      toast.success("Verification code has been sent", {
+        description: `Please check your email box: ${form.email}`,
+      });
+    } catch (err: any) {
+      toast.error("Signup Failed", { description: err.message });
+    } finally {
       setLoading(false);
     }
   };
@@ -50,157 +49,214 @@ export default function SignupPage() {
   const handleVerification = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
     try {
       await confirmSignUp({ username: form.email, confirmationCode: code });
       setStep("SUCCESS");
-      setLoading(false);
-    } catch (err: unknown) {
-      console.error(err);
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("Invalid code");
-      }
+      toast.success("Account Verified");
+    } catch (err: any) {
+      toast.error("Invalid Code", {
+        description: "The code you entered is incorrect or expired.",
+      });
+    } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="w-full lg:grid lg:grid-cols-2 min-h-screen">
-      {/* LEFT SIDE: BRANDING */}
-      <div className="hidden bg-zinc-900 text-white lg:flex flex-col justify-between p-10 relative overflow-hidden">
-        <div className="relative z-10 flex items-center gap-2 text-lg font-medium">
-          <div className="bg-white text-zinc-900 p-1 rounded">
-            <DollarSign className="w-4 h-4" />
+    <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-6 relative overflow-hidden transition-colors duration-500">
+      {/* --- ADAPTIVE AMBIENT BACKGROUND --- */}
+      <div className="absolute inset-0 bg-[radial-gradient(hsl(var(--foreground)/0.05)_1px,transparent_1px)] [background-size:32px_32px]" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] opacity-40 dark:opacity-20" />
+
+      <div className="w-full max-w-md relative z-10">
+        {/* BRANDING */}
+        <div className="flex flex-col items-center mb-10 space-y-3">
+          <div className="bg-primary shadow-xl shadow-primary/20 text-primary-foreground p-3 rounded-2xl transition-transform hover:scale-110 active:scale-95">
+            <DollarSign className="w-6 h-6" />
           </div>
-          ClientLedger
+          <h1 className="text-4xl font-black tracking-tighter">ClientLedger</h1>
+          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em]">
+            Elite Freelance Network
+          </p>
         </div>
-        <div className="relative z-10 space-y-4">
-          <blockquote className="space-y-2">
-            <p className="text-lg">
-              &ldquo;Starting my agency was hard. Managing the finances was
-              harder. ClientLedger made it simple.&rdquo;
-            </p>
-            <footer className="text-sm opacity-80">Alex Chen</footer>
-          </blockquote>
-        </div>
-      </div>
 
-      {/* RIGHT SIDE: FORMS */}
-      <div className="flex items-center justify-center py-12 px-6 bg-background">
-        <div className="mx-auto grid w-full max-w-[350px] gap-6">
-          {/* HEADER (Only show if not success) */}
-          {step !== "SUCCESS" && (
-            <div className="flex flex-col space-y-2 text-center">
-              <Link href="/" className="absolute top-8 left-8 md:hidden">
-                <ArrowLeft className="w-6 h-6 text-muted-foreground" />
-              </Link>
-              <h1 className="text-3xl font-bold tracking-tight">
-                {step === "SIGNUP" ? "Create an account" : "Verify email"}
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                {step === "SIGNUP"
-                  ? "Enter your email below to create your account"
-                  : `We sent a code to ${form.email}`}
-              </p>
-            </div>
-          )}
+        {/* --- STEP-BASED FORM CARD --- */}
 
-          {/* ERROR ALERT */}
-          {error && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          {/* STEP 1: SIGNUP FORM */}
-          {step === "SIGNUP" && (
-            <form onSubmit={handleSignup} className="grid gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="name@example.com"
-                  required
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  disabled={loading}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  required
-                  value={form.password}
-                  onChange={(e) =>
-                    setForm({ ...form, password: e.target.value })
-                  }
-                  disabled={loading}
-                />
-              </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Create Account
-              </Button>
-              <div className="mt-4 text-center text-sm">
-                Already have an account?{" "}
-                <Link
-                  href="/signin"
-                  className="underline text-primary font-medium"
-                >
-                  Login
-                </Link>
-              </div>
-            </form>
-          )}
-
-          {/* STEP 2: VERIFY FORM */}
-          {step === "VERIFY" && (
-            <form onSubmit={handleVerification} className="grid gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="code">Verification Code</Label>
-                <Input
-                  id="code"
-                  className="text-center text-lg tracking-widest"
-                  placeholder="123456"
-                  maxLength={6}
-                  required
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  disabled={loading}
-                />
-              </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Verify Account
-              </Button>
-            </form>
-          )}
-
-          {/* STEP 3: SUCCESS STATE */}
-          {step === "SUCCESS" && (
-            <div className="text-center space-y-4">
-              <div className="flex justify-center mb-4">
-                <div className="h-16 w-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
-                  <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
+        <div className="bg-card/50 backdrop-blur-2xl border border-border/50 rounded-[2.5rem] p-10 shadow-2xl transition-all duration-300">
+          <AnimatePresence mode="wait">
+            {/* STEP 1: SIGNUP */}
+            {step === "SIGNUP" && (
+              <motion.div
+                key="signup"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="space-y-6"
+              >
+                <div className="text-center space-y-1">
+                  <h2 className="text-2xl font-black tracking-tight">
+                    Create Account
+                  </h2>
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Join the elite network of developers.
+                  </p>
                 </div>
-              </div>
-              <h1 className="text-3xl font-bold tracking-tight">
-                Account Created
-              </h1>
-              <p className="text-muted-foreground">
-                Your account has been verified. You can now log in.
-              </p>
-              <Link href="/signin">
-                <Button className="w-full mt-4">Go to Login</Button>
-              </Link>
-            </div>
-          )}
+
+                <form onSubmit={handleSignup} className="space-y-5">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">
+                      Work Email
+                    </Label>
+                    <Input
+                      type="email"
+                      placeholder="name@agency.com"
+                      className="bg-muted/30 border-none h-14 rounded-2xl px-6 text-md focus-visible:ring-primary/20"
+                      required
+                      value={form.email}
+                      onChange={(e) =>
+                        setForm({ ...form, email: e.target.value })
+                      }
+                      disabled={loading}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-60">
+                      Secret Password
+                    </Label>
+                    <Input
+                      type="password"
+                      placeholder="••••••••"
+                      className="bg-muted/30 border-none h-14 rounded-2xl px-6 text-md focus-visible:ring-primary/20"
+                      required
+                      value={form.password}
+                      onChange={(e) =>
+                        setForm({ ...form, password: e.target.value })
+                      }
+                      disabled={loading}
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    className="w-full h-14 rounded-2xl font-black text-md shadow-xl shadow-primary/20 group transition-all hover:scale-[1.02] active:scale-[0.98]"
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <Loader2 className="animate-spin h-5 w-5" />
+                    ) : (
+                      "Request Access"
+                    )}
+                  </Button>
+                </form>
+
+                <p className="text-center text-xs font-bold text-muted-foreground/70">
+                  Already a member?{" "}
+                  <Link
+                    href="/signin"
+                    className="text-primary font-black hover:underline underline-offset-8"
+                  >
+                    Login
+                  </Link>
+                </p>
+              </motion.div>
+            )}
+
+            {/* STEP 2: VERIFY */}
+            {step === "VERIFY" && (
+              <motion.div
+                key="verify"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 1.05 }}
+                className="space-y-8"
+              >
+                <div className="text-center space-y-4">
+                  <div className="h-16 w-16 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto shadow-inner">
+                    <Mail className="h-7 w-7 text-primary" />
+                  </div>
+                  <div className="space-y-1">
+                    <h2 className="text-2xl font-black tracking-tight">
+                      Verify Identity
+                    </h2>
+                    <p className="text-xs font-medium text-muted-foreground leading-relaxed">
+                      We sent a 6-digit security code to <br />
+                      <span className="text-foreground font-bold">
+                        {form.email}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+
+                <form onSubmit={handleVerification} className="space-y-6">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-center block opacity-60">
+                      Authentication Code
+                    </Label>
+                    <Input
+                      className="bg-muted/30 border-none h-20 rounded-2xl text-center text-3xl font-black tracking-[0.4em] focus-visible:ring-primary/20 placeholder:text-muted-foreground/20"
+                      placeholder="000000"
+                      maxLength={6}
+                      required
+                      value={code}
+                      onChange={(e) => setCode(e.target.value)}
+                      disabled={loading}
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    className="w-full h-14 rounded-2xl font-black text-md shadow-xl shadow-primary/20"
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <Loader2 className="animate-spin h-5 w-5" />
+                    ) : (
+                      "Authorize Account"
+                    )}
+                  </Button>
+                </form>
+
+                <button
+                  type="button"
+                  className="w-full text-[10px] font-black text-muted-foreground uppercase tracking-widest hover:text-primary transition-colors"
+                  onClick={() => setStep("SIGNUP")}
+                >
+                  Edit Email Address
+                </button>
+              </motion.div>
+            )}
+
+            {/* STEP 3: SUCCESS */}
+            {step === "SUCCESS" && (
+              <motion.div
+                key="success"
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="text-center space-y-8 py-4"
+              >
+                <div className="h-24 w-24 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                  <CheckCircle2 className="h-12 w-12 text-emerald-500 animate-in zoom-in duration-500" />
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-4xl font-black tracking-tighter">
+                    Verified.
+                  </h2>
+                  <p className="text-sm text-muted-foreground font-medium">
+                    Your node is active. Access is now granted.
+                  </p>
+                </div>
+                <Link href="/signin" className="block">
+                  <Button className="w-full h-16 rounded-2xl font-black text-md shadow-2xl shadow-emerald-500/20 bg-emerald-600 hover:bg-emerald-500 text-white">
+                    Go to Login Portal <ChevronRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* SECURITY FOOTER */}
+        <div className="mt-10 flex items-center justify-center gap-2.5 text-[9px] font-black text-muted-foreground/50 uppercase tracking-[0.25em]">
+          <Lock className="w-3 h-3" />
+          End-to-End Encrypted via AWS Cognito
         </div>
       </div>
     </div>

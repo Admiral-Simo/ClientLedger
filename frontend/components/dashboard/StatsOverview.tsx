@@ -106,7 +106,7 @@ export default function StatsOverview({ stats }: StatsProps) {
                 <div className="flex items-center gap-2 p-3 bg-primary/5 rounded-xl border border-primary/10">
                   <TrendingUp className="h-5 w-5 text-primary" />
                   <span className="text-xs font-bold text-primary italic">
-                    On track for millionaire by 35!
+                    On track for millionaire soon!
                   </span>
                 </div>
               </div>
