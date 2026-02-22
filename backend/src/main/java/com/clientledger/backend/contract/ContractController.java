@@ -2,6 +2,7 @@ package com.clientledger.backend.contract;
 
 import com.clientledger.backend.client.Client;
 import com.clientledger.backend.client.ClientRepository;
+import com.clientledger.backend.email.EmailService;
 import com.clientledger.backend.user.UserProfile;
 import com.clientledger.backend.user.UserProfileRepository;
 import org.springframework.data.domain.Page;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/contracts")
@@ -22,11 +24,15 @@ public class ContractController {
     private final ContractRepository contractRepository;
     private final ClientRepository clientRepository;
     private final UserProfileRepository userProfileRepository;
+    private final EmailService emailService;
+    private final PdfService pdfService;
 
-    public ContractController(ContractRepository contractRepository, ClientRepository clientRepository, UserProfileRepository userProfileRepository) {
+    public ContractController(ContractRepository contractRepository, ClientRepository clientRepository, UserProfileRepository userProfileRepository, EmailService emailService, PdfService pdfService) {
         this.contractRepository = contractRepository;
         this.clientRepository = clientRepository;
         this.userProfileRepository = userProfileRepository;
+        this.emailService = emailService;
+        this.pdfService = pdfService;
     }
 
     // DTO Record
@@ -151,5 +157,33 @@ public class ContractController {
         return ResponseEntity.ok()
                 .header("Content-Disposition", "attachment; filename=invoice_" + safeTitle + ".pdf")
                 .body(pdfBytes);
+    }
+
+    @PostMapping("/{id}/email")
+    public ResponseEntity<?> emailInvoice(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        String userId = jwt.getSubject();
+
+        Contract contract = contractRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Contract not found"));
+
+        if (!contract.getOwnerId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access Denied");
+        }
+
+        UserProfile profile = userProfileRepository.findByOwnerId(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Please complete your Profile settings first."));
+
+        try {
+            byte[] pdfBytes = pdfService.generateInvoice(contract, profile);
+
+            // the one you inserted in terraform
+            String senderEmail = "mohamedkhalisgm@gmail.com";
+            emailService.sendInvoiceWithAttachment(contract.getClient().getEmail(), senderEmail, contract.getTitle(), pdfBytes);
+
+            return ResponseEntity.ok(Map.of("message", "Invoice sent successfully to " + contract.getClient().getEmail()));
+
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "Failed to send email: " + e.getMessage()));
+        }
     }
 }
