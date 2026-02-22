@@ -10,7 +10,6 @@ import {
   Plus,
   LayoutGrid,
   List as ListIcon,
-  DollarSign,
   Briefcase,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -32,6 +31,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import ContractCard from "./ContractCard";
+import CreateContractModal from "./CreateContractModal"; // 👈 New Import
 import { useGetContractsQuery } from "@/lib/features/apiSlice";
 
 interface ContractListProps {
@@ -50,6 +50,9 @@ export default function ContractList({
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [isClientSwitching, setIsClientSwitching] = useState(false);
+
+  // 🌟 State for the Modal
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   useEffect(() => {
     setIsClientSwitching(true);
@@ -82,19 +85,12 @@ export default function ContractList({
   const totalPages = data?.totalPages || 0;
   const totalElements = data?.totalElements || 0;
 
-  const currentViewValue = useMemo(() => {
-    if (!contracts) return 0;
-    return contracts.reduce(
-      (acc: number, curr: any) => acc + (Number(curr.totalValue) || 0),
-      0,
-    );
-  }, [contracts]);
-
   const showLoading = isLoading || isClientSwitching;
   const showEmpty = !showLoading && contracts.length === 0;
 
   return (
     <div className="flex flex-col h-[calc(100vh-140px)] bg-background rounded-xl border shadow-sm overflow-hidden">
+      {/* Header Section */}
       <div className="p-4 border-b bg-card space-y-4 shrink-0">
         <div className="flex items-center justify-between">
           <div>
@@ -114,11 +110,20 @@ export default function ContractList({
               )}
             </h2>
           </div>
-          <Button size="sm" className="gap-2">
+
+          {/* 🌟 Button now opens the modal */}
+          <Button
+            size="sm"
+            className="gap-2"
+            onClick={() => setIsCreateModalOpen(true)}
+            disabled={!selectedClientId}
+            title={!selectedClientId ? "Select a client first" : ""}
+          >
             <Plus className="h-4 w-4" /> New Contract
           </Button>
         </div>
 
+        {/* Filters and Search */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -164,6 +169,7 @@ export default function ContractList({
         </div>
       </div>
 
+      {/* Main Content Area */}
       <div className="flex-1 overflow-y-auto p-4 bg-slate-50/50 dark:bg-black/20 relative">
         {showLoading ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/50 z-10">
@@ -206,7 +212,9 @@ export default function ContractList({
                         <TableCell className="font-medium">
                           {contract.title}
                         </TableCell>
-                        <TableCell>${contract.totalValue}</TableCell>
+                        <TableCell>
+                          {contract.currency} {contract.totalValue}
+                        </TableCell>
                         <TableCell>{contract.status}</TableCell>
                       </TableRow>
                     ))}
@@ -218,6 +226,7 @@ export default function ContractList({
         )}
       </div>
 
+      {/* Pagination Footer */}
       <div className="p-3 border-t bg-card flex items-center justify-between shrink-0">
         <span className="text-xs text-muted-foreground">
           Page {page + 1} of {totalPages || 1}
@@ -241,6 +250,14 @@ export default function ContractList({
           </Button>
         </div>
       </div>
+
+      {/* 🌟 Modal Integration */}
+      <CreateContractModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        clientId={selectedClientId}
+        clientName={clientName}
+      />
     </div>
   );
 }
