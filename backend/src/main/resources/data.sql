@@ -1,11 +1,11 @@
 -- CLIENTS (IDs start at 100)
 INSERT INTO clients (id, name, email, country, default_currency, owner_id)
 VALUES
-    (100, 'TechStart Solutions', 'billing@techstart.io', 'USA', 'USD', '31e990ae-a0f1-702d-feff-9443c3e0d1c7'),
-    (101, 'Casablanca Creative', 'hello@casa-creative.ma', 'Morocco', 'MAD', '31e990ae-a0f1-702d-feff-9443c3e0d1c7'),
-    (102, 'German Health GmbH', 'contact@ghealth.de', 'Germany', 'EUR', '31e990ae-a0f1-702d-feff-9443c3e0d1c7'),
-    (103, 'Dubai FinTech', 'info@dubaifintech.ae', 'UAE', 'USD', '31e990ae-a0f1-702d-feff-9443c3e0d1c7'),
-    (104, 'London Law LLP', 'accounts@londonlaw.uk', 'UK', 'GBP', '31e990ae-a0f1-702d-feff-9443c3e0d1c7');
+    (100, 'TechStart Solutions', 'thementaliste08@gmail.com', 'USA', 'USD', '31e990ae-a0f1-702d-feff-9443c3e0d1c7'),
+    (101, 'Casablanca Creative', 'thementaliste08@gmail.com', 'Morocco', 'MAD', '31e990ae-a0f1-702d-feff-9443c3e0d1c7'),
+    (102, 'German Health GmbH', 'thementaliste08@gmail.com', 'Germany', 'EUR', '31e990ae-a0f1-702d-feff-9443c3e0d1c7'),
+    (103, 'Dubai FinTech', 'thementaliste08@gmail.com', 'UAE', 'USD', '31e990ae-a0f1-702d-feff-9443c3e0d1c7'),
+    (104, 'London Law LLP', 'thementaliste08@gmail.com', 'UK', 'GBP', '31e990ae-a0f1-702d-feff-9443c3e0d1c7');
 
 -- CONTRACTS (Now includes created_at)
 INSERT INTO contracts (id, title, total_value, currency, status, client_id, owner_id, created_at)

@@ -152,6 +152,13 @@ export const apiSlice = createApi({
       query: () => `/profile`,
       providesTags: ["Profile"],
     }),
+
+    sendInvoiceEmail: builder.mutation<{ message: string }, number>({
+      query: (contractId) => ({
+        url: `/contracts/${contractId}/email`,
+        method: "POST",
+      }),
+    }),
   }),
 });
 
@@ -168,4 +175,5 @@ export const {
   useGetStatsSummaryQuery,
   useUpdateProfileMutation,
   useGetProfileQuery,
+  useSendInvoiceEmailMutation,
 } = apiSlice;

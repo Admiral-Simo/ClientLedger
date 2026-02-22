@@ -1,4 +1,5 @@
 data "aws_elastic_beanstalk_solution_stack" "java17" {
+  most_recent = true
   name_regex = "^64bit Amazon Linux 2023 v.* running Corretto 17$"
 }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { fetchAuthSession } from "aws-amplify/auth"; // ✅ Import Auth
+import { fetchAuthSession } from "aws-amplify/auth";
 import {
   Card,
   CardContent,
@@ -23,9 +23,21 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Edit2, Trash2, CheckCircle2, Loader2, Download } from "lucide-react"; // ✅ Import Download Icon
+import {
+  Edit2,
+  Trash2,
+  CheckCircle2,
+  Loader2,
+  Download,
+  Mail,
+} from "lucide-react";
+import { toast } from "sonner"; // Assuming you use Sonner for toasts
+
 import ContractStatusSelector from "@/components/contract-status-selector";
-import { useDeleteContractMutation } from "@/lib/features/apiSlice";
+import {
+  useDeleteContractMutation,
+  useSendInvoiceEmailMutation,
+} from "@/lib/features/apiSlice";
 import ContractDialog from "./ContractDialog";
 
 interface ContractProps {
@@ -34,36 +46,48 @@ interface ContractProps {
 
 export default function ContractCard({ contract }: ContractProps) {
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false); // ✅ Download Loading State
+  const [isDownloading, setIsDownloading] = useState(false);
 
+  // RTK Query Hooks
   const [deleteContract, { isLoading: isDeleting }] =
     useDeleteContractMutation();
+  const [sendInvoice, { isLoading: isSendingEmail }] =
+    useSendInvoiceEmailMutation();
 
   const handleDelete = async () => {
     await deleteContract(contract.id);
   };
 
-  // ✅ NEW: Secure Download Handler
+  // ✅ EMAIL Handler
+  const handleSendEmail = async () => {
+    try {
+      await sendInvoice(contract.id).unwrap();
+      toast.success(`Invoice sent to ${contract.client?.name || "client"}!`);
+    } catch (error: any) {
+      console.error("Failed to send email:", error);
+      toast.error(error?.data?.error || "Failed to send the invoice email.");
+    }
+  };
+
+  // ✅ DOWNLOAD Handler
   const handleDownload = async () => {
     try {
       setIsDownloading(true);
 
-      // 1. Get the current JWT Token
       const session = await fetchAuthSession();
       const token = session.tokens?.accessToken?.toString();
 
       if (!token) {
-        alert("You must be logged in to download.");
+        toast.error("You must be logged in to download.");
         return;
       }
 
-      // 2. Fetch the PDF with the Authorization Header
       const apiUrl =
         process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
       const response = await fetch(`${apiUrl}/contracts/${contract.id}/pdf`, {
         method: "GET",
         headers: {
-          Authorization: `Bearer ${token}`, // 🔑 This unlocks the backend
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -71,14 +95,11 @@ export default function ContractCard({ contract }: ContractProps) {
         throw new Error("Failed to download invoice");
       }
 
-      // 3. Convert response to a Blob (File)
       const blob = await response.blob();
-
-      // 4. Create a temporary download link and click it programmatically
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      // Generate a clean filename based on the title
+
       const safeTitle = contract.title
         .replace(/[^a-z0-9]/gi, "_")
         .toLowerCase();
@@ -86,16 +107,17 @@ export default function ContractCard({ contract }: ContractProps) {
       document.body.appendChild(a);
       a.click();
 
-      // 5. Cleanup
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (error) {
       console.error("Download error:", error);
-      alert("Could not download the invoice. Please try again.");
+      toast.error("Could not download the invoice. Please try again.");
     } finally {
       setIsDownloading(false);
     }
   };
+
+  const isActionDisabled = isDeleting || isDownloading || isSendingEmail;
 
   return (
     <>
@@ -136,18 +158,34 @@ export default function ContractCard({ contract }: ContractProps) {
               variant="ghost"
               className="h-8 w-8"
               onClick={() => setIsEditOpen(true)}
-              disabled={isDownloading}
+              disabled={isActionDisabled}
             >
               <Edit2 className="w-3.5 h-3.5 text-muted-foreground" />
             </Button>
 
-            {/* ✅ DOWNLOAD BUTTON */}
+            {/* ✅ SEND EMAIL BUTTON */}
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8"
+              onClick={handleSendEmail}
+              disabled={isActionDisabled}
+              title={`Email Invoice to ${contract.client?.name}`}
+            >
+              {isSendingEmail ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
+              ) : (
+                <Mail className="w-3.5 h-3.5 text-muted-foreground hover:text-primary" />
+              )}
+            </Button>
+
+            {/* DOWNLOAD BUTTON */}
             <Button
               size="icon"
               variant="ghost"
               className="h-8 w-8"
               onClick={handleDownload}
-              disabled={isDownloading}
+              disabled={isActionDisabled}
               title="Download Invoice PDF"
             >
               {isDownloading ? (
@@ -164,7 +202,7 @@ export default function ContractCard({ contract }: ContractProps) {
                   size="icon"
                   variant="ghost"
                   className="h-8 w-8"
-                  disabled={isDeleting || isDownloading}
+                  disabled={isActionDisabled}
                 >
                   {isDeleting ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin text-destructive" />
@@ -179,7 +217,7 @@ export default function ContractCard({ contract }: ContractProps) {
                   <AlertDialogDescription>
                     This action cannot be undone. This will permanently delete
                     the contract
-                    <span className="font-semibold text-foreground">
+                    <span className="font-semibold text-foreground mx-1">
                       {contract.title}
                     </span>
                     and remove it from our servers.
@@ -198,6 +236,7 @@ export default function ContractCard({ contract }: ContractProps) {
             </AlertDialog>
           </div>
 
+          {/* STATUS BADGE */}
           {contract.status === "PAID" && (
             <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-500 font-medium">
               <CheckCircle2 className="w-3.5 h-3.5" />
