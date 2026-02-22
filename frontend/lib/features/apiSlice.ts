@@ -159,6 +159,11 @@ export const apiSlice = createApi({
         method: "POST",
       }),
     }),
+
+    getRevenueOverTime: builder.query<any[], void>({
+      query: () => "/stats/revenue-over-time",
+      providesTags: ["Contracts"],
+    }),
   }),
 });
 
@@ -176,4 +181,5 @@ export const {
   useUpdateProfileMutation,
   useGetProfileQuery,
   useSendInvoiceEmailMutation,
+  useGetRevenueOverTimeQuery,
 } = apiSlice;

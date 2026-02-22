@@ -17,6 +17,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import PaidUnpaidPieChart from "@/components/PaidUnpaidPieChart";
+import RevenueChart from "./RevenueChart"; // 👈 Import your new Bar Chart
 import { cn } from "@/lib/utils";
 
 interface StatsProps {
@@ -24,7 +25,7 @@ interface StatsProps {
 }
 
 export default function StatsOverview({ stats }: StatsProps) {
-  // Animation variants for that smooth staggered entrance
+  // Staggered entrance animation for a smooth, high-end feel
   const container = {
     hidden: { opacity: 0 },
     show: {
@@ -83,49 +84,57 @@ export default function StatsOverview({ stats }: StatsProps) {
         />
       </div>
 
-      {/* --- BOTTOM ROW: VISUAL BREAKDOWN --- */}
-      <motion.div variants={item}>
-        <Card className="border-none shadow-xl bg-card/50 backdrop-blur-md overflow-hidden">
-          <div className="h-1.5 w-full bg-gradient-to-r from-emerald-500 via-amber-500 to-rose-500" />
-          <div className="grid grid-cols-1 lg:grid-cols-3">
-            <div className="p-6 lg:col-span-1 border-r border-border/50">
-              <CardHeader className="p-0 mb-4">
-                <CardTitle className="text-xl font-black tracking-tight">
-                  Financial Health
-                </CardTitle>
-                <CardDescription>
-                  Revenue vs. Outstanding Balance
-                </CardDescription>
-              </CardHeader>
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Your current collection rate is looking healthy. Focus on the
-                  <span className="text-rose-500 font-bold"> overdue</span>{" "}
-                  invoices to maximize cash flow.
-                </p>
-                <div className="flex items-center gap-2 p-3 bg-primary/5 rounded-xl border border-primary/10">
-                  <TrendingUp className="h-5 w-5 text-primary" />
-                  <span className="text-xs font-bold text-primary italic">
-                    On track for millionaire soon!
-                  </span>
+      {/* --- BOTTOM ROW: VISUAL ANALYTICS --- */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* LEFT: REVENUE BAR CHART (Takes 2 columns) */}
+        <motion.div variants={item} className="lg:col-span-2 h-full">
+          <RevenueChart />
+        </motion.div>
+
+        {/* RIGHT: FINANCIAL HEALTH & PIE CHART (Takes 1 column) */}
+        <motion.div variants={item} className="lg:col-span-1 h-full">
+          <Card className="border-none shadow-xl bg-card/40 backdrop-blur-md overflow-hidden h-full flex flex-col">
+            <div className="h-1.5 w-full bg-gradient-to-r from-emerald-500 to-amber-500" />
+
+            <CardHeader className="pb-0">
+              <CardTitle className="text-lg font-black tracking-tight">
+                Financial Health
+              </CardTitle>
+              <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+                Paid vs. Outstanding
+              </CardDescription>
+            </CardHeader>
+
+            <CardContent className="flex-1 flex flex-col justify-between p-6">
+              {/* Pie Chart Container */}
+              <div className="w-full flex justify-center items-center flex-1 min-h-[200px]">
+                <div className="w-full max-w-[220px] aspect-square">
+                  <PaidUnpaidPieChart
+                    paid={stats?.totalPaidAmount ?? 0}
+                    unpaid={
+                      (stats?.totalPendingAmount ?? 0) +
+                      (stats?.totalOverdueAmount ?? 0)
+                    }
+                  />
                 </div>
               </div>
-            </div>
 
-            <div className="lg:col-span-2 p-6 bg-muted/5 flex items-center justify-center">
-              <div className="w-full max-w-[400px]">
-                <PaidUnpaidPieChart
-                  paid={stats?.totalPaidAmount ?? 0}
-                  unpaid={
-                    (stats?.totalPendingAmount ?? 0) +
-                    (stats?.totalOverdueAmount ?? 0)
-                  }
-                />
+              {/* Dynamic Insights Box */}
+              <div className="w-full mt-4 p-4 bg-primary/5 rounded-2xl border border-primary/10 flex items-start gap-3">
+                <TrendingUp className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                <p className="text-xs font-bold text-muted-foreground leading-relaxed">
+                  Focus on collecting{" "}
+                  <span className="text-rose-500 font-black">overdue</span>{" "}
+                  invoices to maximize cash flow.
+                  <span className="text-primary italic font-black tracking-tight block mt-1">
+                    On track for millionaire by 35!
+                  </span>
+                </p>
               </div>
-            </div>
-          </div>
-        </Card>
-      </motion.div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
     </motion.div>
   );
 }
@@ -151,8 +160,8 @@ function StatCard({
   };
 
   return (
-    <motion.div variants={variant}>
-      <Card className="border-none shadow-lg bg-card/40 backdrop-blur-sm group hover:bg-card/60 transition-all duration-300">
+    <motion.div variants={variant} className="h-full">
+      <Card className="h-full border-none shadow-lg bg-card/40 backdrop-blur-sm group hover:bg-card/60 transition-all duration-300">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/70">
             {title}

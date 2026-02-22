@@ -1,5 +1,6 @@
 package com.clientledger.backend.contract;
 
+import com.clientledger.backend.stats.dto.MonthlyRevenue;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -36,4 +37,6 @@ public interface ContractRepository extends JpaRepository<Contract, Long> {
             @Param("search") String search,
             Pageable pageable
     );
+
+    List<Contract> findByOwnerIdAndStatus(String ownerId, ContractStatus status);
 }
