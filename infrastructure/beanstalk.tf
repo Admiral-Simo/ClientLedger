@@ -98,3 +98,4 @@ resource "aws_elastic_beanstalk_environment" "backend_env" {
     value     = "https://cognito-idp.${var.aws_region}.amazonaws.com/${aws_cognito_user_pool.client_ledger_pool.id}/.well-known/jwks.json"
   }
 }
+

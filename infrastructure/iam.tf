@@ -1,4 +1,4 @@
-# --- 1. EC2 Instance Role (The Server's Permission) ---
+# --- 1. EC2 Instance Role (The Server's Identity) ---
 resource "aws_iam_role" "beanstalk_ec2" {
   name = "clientledger-ec2-role"
 
@@ -12,19 +12,25 @@ resource "aws_iam_role" "beanstalk_ec2" {
   })
 }
 
-# Attach the "WebTier" policy (CRITICAL for Green Health)
+# Attach Standard Beanstalk Permissions
 resource "aws_iam_role_policy_attachment" "beanstalk_ec2_web" {
   role       = aws_iam_role.beanstalk_ec2.name
   policy_arn = "arn:aws:iam::aws:policy/AWSElasticBeanstalkWebTier"
 }
 
-# Create the "Instance Profile" wrapper (Beanstalk needs this)
+# Attach YOUR SES Policy
+resource "aws_iam_role_policy_attachment" "beanstalk_ses_attach" {
+  role       = aws_iam_role.beanstalk_ec2.name
+  policy_arn = aws_iam_policy.ses_sender.arn
+}
+
+# The "Instance Profile" wrapper Beanstalk needs
 resource "aws_iam_instance_profile" "beanstalk_ec2_profile" {
   name = "clientledger-ec2-profile"
   role = aws_iam_role.beanstalk_ec2.name
 }
 
-# --- 2. Beanstalk Service Role (The Manager's Permission) ---
+# --- 2. Beanstalk Service Role (The Manager Identity) ---
 resource "aws_iam_role" "beanstalk_service" {
   name = "clientledger-service-role"
 

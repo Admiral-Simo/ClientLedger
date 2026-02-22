@@ -18,8 +18,3 @@ resource "aws_iam_policy" "ses_sender" {
     }]
   })
 }
-
-resource "aws_iam_role_policy_attachment" "beanstalk_ses_attach" {
-  role       = "aws-elasticbeanstalk-ec2-role"
-  policy_arn = aws_iam_policy.ses_sender.arn
-}
