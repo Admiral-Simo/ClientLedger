@@ -72,5 +72,5 @@ resource "random_string" "suffix" {
 }
 
 output "cognito_issuer_uri" {
-  value = "https://cognito-idp.us-east-3.amazonaws.com/${aws_cognito_user_pool.client_ledger_pool.id}"
+  value = "https://cognito-idp.${var.aws_region}.amazonaws.com/${aws_cognito_user_pool.client_ledger_pool.id}"
 }
