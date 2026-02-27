@@ -138,7 +138,7 @@ export default function DashboardLayout({
                     className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer text-rose-500 focus:bg-rose-500/10 focus:text-rose-600 transition-colors font-bold text-xs"
                     onClick={handleSignOut}
                   >
-                    <LogOut className="w-4 h-4" /> Abmelden
+                    <LogOut className="w-4 h-4" /> Log Out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
